@@ -22,11 +22,14 @@
     id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
     state: present
 
-- name: Add Tor Project's package repository.
+- name: Add Tor Project's package repositories.
   apt_repository:
-    repo: "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
+    repo: "{{ item }}"
     state: present
     validate_certs: yes
+  with_items:
+    - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
+    - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
 
 - name: Get installed Tor version.
   shell: "tor --version | cut -d ' ' -f 3"
