@@ -1,0 +1,23 @@
+# For building Tor from source.
+tor_package_build_dir: "/tmp/tor-package-source"
+
+# For system Tor configuration.
+tor_data_dir: "/var/lib/tor"
+
+# For system Onion services configuration.
+tor_onion_services_dir: "{{ tor_data_dir }}/onion-services"
+
+# Define the Onion services you want available on the managed host.
+onion_services:
+
+  # This Onion service is used primarily for NAT punching.
+  ssh:
+    name: onion-ssh # The name of the Onion service directory.
+    version: 2      # The Onion service protocol.
+    virtport: 22    # The virtual port to expose on the Onion.
+    target_addr: 127.0.0.1 # The target address of the service.
+    target_port: 22        # The target port of the service.
+    auth_type: stealth     # The Onion's authentication type. This
+                           # can be `stealth`, `basic`, or `false`.
+    clients:        # A list of clients to authenticate.
+      - admin

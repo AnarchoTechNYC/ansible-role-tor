@@ -1,0 +1,113 @@
+# Tasks to ensure Tor is installed, running, and current.
+
+- name: Install Tor dependencies.
+  apt:
+    force_apt_get: yes
+    update_cache: yes
+    name: "{{ packages }}"
+  vars:
+    packages:
+      # For building Tor and other software from source:
+      - build-essential
+      - fakeroot
+      - devscripts
+
+      # Needed by GnuPG 2:
+      - dirmngr
+
+- name: Install the Tor Project's GPG public key.
+  apt_key:
+    keyserver: keys.gnupg.net
+    validate_certs: yes
+    id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
+    state: present
+
+- name: Add Tor Project's package repository.
+  apt_repository:
+    repo: "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
+    state: present
+    validate_certs: yes
+
+- name: Get installed Tor version.
+  shell: "tor --version | cut -d ' ' -f 3"
+  register: my_tor_version
+
+- name: Get repository Tor version.
+  shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
+  register: repo_tor_version
+
+- name: Build and install new Tor from source.
+  when: not my_tor_version.stdout.startswith(repo_tor_version.stdout.split('-')[0])
+  block:
+    - name: Build Tor dependencies.
+      apt:
+        name: tor
+        state: build-dep
+
+    - name: Create temporary directory for building Tor.
+      file:
+        path: "{{ tor_package_build_dir }}"
+        state: directory
+
+    - name: Build Tor from source.
+      shell: "apt source tor; cd tor-*; debuild -rfakeroot -uc -us; cd ..;"
+      args:
+        chdir: "{{ tor_package_build_dir | quote }}"
+        creates: "tor_*.orig.tar.gz"
+
+    - name: Move newly built Tor packages to predictable names.
+      shell: |
+        mv {{ tor_package_build_dir | quote }}/tor_*.deb {{ tor_package_build_dir | quote }}/tor_justbuilt.deb
+        mv {{ tor_package_build_dir | quote }}/tor-geoipdb_*.deb {{ tor_package_build_dir | quote }}/tor-geoipdb_justbuilt.deb
+      args:
+        chdir: "{{ tor_package_build_dir | quote }}"
+        creates: "tor_justbuilt.deb"
+
+    - name: Install newly built Tor packages.
+      apt:
+        deb: "{{ item }}"
+      with_items:
+        - "{{ tor_package_build_dir }}/tor_justbuilt.deb"
+        - "{{ tor_package_build_dir }}/tor-geoipdb_justbuilt.deb"
+
+    - name: Remove temporary directory for building Tor.
+      file:
+        path: "{{ tor_package_build_dir }}"
+        state: absent
+
+- name: Enable system Tor service.
+  service:
+    name: tor
+    state: started
+    enabled: yes
+
+- name: Create system Onion services directory.
+  file:
+    path: "{{ tor_onion_services_dir }}"
+    state: directory
+    owner: debian-tor
+
+- name: Ensure torrc.d directroy exists.
+  file:
+    path: /etc/tor/torrc.d
+    state: directory
+
+- name: Include the torrc.d directory in the torrc configuration.
+  lineinfile:
+    path: /etc/tor/torrc
+    state: present
+    insertafter: EOF
+    regexp: '^%include /etc/tor/torrc\.d$'
+    line: "%include /etc/tor/torrc.d"
+    # TODO: Why won't validation work, here?
+    #validate: "sudo -u debian-tor tor --verify-config -f %s"
+  notify:
+    - Reload Tor configuration.
+
+- name: Add Onion service configurations.
+  template:
+    src: onion-service.j2
+    dest: "/etc/tor/torrc.d/{{ item.value['name'] }}"
+    validate: "tor --verify-config -f %s"
+  with_dict: "{{ onion_services }}"
+  notify: Reload Tor configuration.

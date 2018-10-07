@@ -1,0 +1,19 @@
+---
+dependencies: []
+galaxy_info:
+  author: AnarchoTechNYC
+  description: Build and install a system Tor from source, with configurable Onion services.
+  company: Eat The Rich, Inc.
+  license: AGPL-3.0-or-later # SPDX tag from https://spdx.org/licenses/
+  min_ansible_version: 2.6.5
+  platforms:
+    - name: Raspbian
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - 9
+  galaxy_tags:
+    - tor
+    - hidden services
+    - Onion services
