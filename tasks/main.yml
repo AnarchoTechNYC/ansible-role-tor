@@ -117,3 +117,20 @@
     validate: "tor --verify-config -f %s"
   loop: "{{ onion_services | dict2items }}"
   notify: Reload Tor configuration.
+
+- name: Apply Tor configuration.
+  meta: flush_handlers
+
+# TODO: Can these these two backup tasks be combined into one?
+- name: Fetch backup copies of Onion service private keys.
+  fetch:
+    dest: "{{ tor_onion_services_backup_dir }}"
+    src: "{{ tor_onion_services_dir }}/{{ item.value['name'] }}/private_key"
+  loop: "{{ onion_services | dict2items }}"
+
+- name: Fetch backup copies of Onion service client keys.
+  fetch:
+    dest: "{{ tor_onion_services_backup_dir }}"
+    src: "{{ tor_onion_services_dir }}/{{ item.value['name'] }}/client_keys"
+  loop: "{{ onion_services | dict2items }}"
+# TODO: Run a local_action to set the file mode on these important files?

@@ -7,6 +7,11 @@ tor_data_dir: "/var/lib/tor"
 # For system Onion services configuration.
 tor_onion_services_dir: "{{ tor_data_dir }}/onion-services"
 
+# Location on the Ansible controller where the newly generated Onion
+# service private keys (and possibly authenticated client keys) will
+# be stored for backup purposes.
+tor_onion_services_backup_dir: "~/onion-services-backups"
+
 # Define the Onion services you want available on the managed host.
 onion_services:
 
