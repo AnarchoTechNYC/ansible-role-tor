@@ -1,19 +1,10 @@
 # Tasks to ensure Tor is installed, running, and current.
 
-- name: Install Tor dependencies.
+- name: Install dirmngr.
   apt:
-    force_apt_get: yes
     update_cache: yes
-    name: "{{ packages }}"
-  vars:
-    packages:
-      # For building Tor and other software from source:
-      - build-essential
-      - fakeroot
-      - devscripts
-
-      # Needed by GnuPG 2:
-      - dirmngr
+    state: latest
+    name: dirmngr
 
 - name: Install the Tor Project's GPG public key.
   apt_key:
@@ -27,7 +18,7 @@
     repo: "{{ item }}"
     state: present
     validate_certs: yes
-  with_items:
+  loop:
     - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
     - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
 
@@ -40,8 +31,19 @@
   register: repo_tor_version
 
 - name: Build and install new Tor from source.
+  # TODO: Easier to use `version()` comparison for this?
   when: not my_tor_version.stdout.startswith(repo_tor_version.stdout.split('-')[0])
   block:
+    - name: Install Tor build dependencies.
+      apt:
+        state: present
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - build-essential
+          - fakeroot
+          - devscripts
+
     - name: Build Tor dependencies.
       apt:
         name: tor
@@ -69,7 +71,7 @@
     - name: Install newly built Tor packages.
       apt:
         deb: "{{ item }}"
-      with_items:
+      loop:
         - "{{ tor_package_build_dir }}/tor_justbuilt.deb"
         - "{{ tor_package_build_dir }}/tor-geoipdb_justbuilt.deb"
 
@@ -102,8 +104,7 @@
     insertafter: EOF
     regexp: '^%include /etc/tor/torrc\.d$'
     line: "%include /etc/tor/torrc.d"
-    # TODO: Why won't validation work, here?
-    #validate: "sudo -u debian-tor tor --verify-config -f %s"
+    validate: "tor --verify-config -f %s"
   notify:
     - Reload Tor configuration.
 
@@ -112,5 +113,5 @@
     src: onion-service.j2
     dest: "/etc/tor/torrc.d/{{ item.value['name'] }}"
     validate: "tor --verify-config -f %s"
-  with_dict: "{{ onion_services }}"
+  loop: "{{ onion_services | dict2items }}"
   notify: Reload Tor configuration.
