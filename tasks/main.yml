@@ -23,16 +23,18 @@
     - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
 
 - name: Get installed Tor version.
-  shell: "tor --version | cut -d ' ' -f 3"
   register: my_tor_version
+  shell: "tor --version | cut -d ' ' -f 3"
+  changed_when: false
 
 - name: Get repository Tor version.
-  shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
   register: repo_tor_version
+  shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
+  changed_when: false
 
-- name: Build and install new Tor from source.
-  # TODO: Easier to use `version()` comparison for this?
-  when: not my_tor_version.stdout.startswith(repo_tor_version.stdout.split('-')[0])
+- name: Build and install updated Tor from source.
+  # When my_tor_version.stdout is the empty string, there is no Tor installed.
+  when: my_tor_version.stdout == "" or my_tor_version.stdout is version(repo_tor_version.stdout.split('-')[0], '<')
   block:
     - name: Install Tor build dependencies.
       apt:
