@@ -1,3 +1,4 @@
+---
 - name: Reload Tor configuration.
   service:
     name: tor

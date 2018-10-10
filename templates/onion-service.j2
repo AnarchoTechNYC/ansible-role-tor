@@ -1,4 +1,4 @@
-HiddenServiceDir {{ tor_onion_services_dir }}/{{ item.value['name'] }}
-HiddenServiceVersion {{ item.value['version'] }}
-HiddenServicePort {{ item.value['virtport'] }} {{ item.value['target_addr'] }}:{{ item.value['target_port'] }}
-{% if item.value['auth_type'] %}HiddenServiceAuthorizeClient {{ item.value['auth_type'] }} {{ item.value['clients'] | join(',') }}{% endif %}
+HiddenServiceDir {{ tor_onion_services_dir }}/{{ item.name }}
+HiddenServicePort {{ item.virtport }} {{ item.target_addr }}:{{ item.target_port }}
+HiddenServiceVersion {{ item.version }}
+{% if item.auth_type %}HiddenServiceAuthorizeClient {{ item.auth_type }} {{ item.clients | join(',') }}{% endif %}

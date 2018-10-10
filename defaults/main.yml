@@ -1,3 +1,4 @@
+---
 # For building Tor from source.
 tor_package_build_dir: "/tmp/tor-package-source"
 
@@ -16,8 +17,7 @@ tor_onion_services_backup_dir: "~/onion-services-backups"
 onion_services:
 
   # This Onion service is used primarily for NAT punching.
-  ssh:
-    name: onion-ssh # The name of the Onion service directory.
+  - name: onion-ssh # The name of the Onion service directory.
     version: 2      # The Onion service protocol.
     virtport: 22    # The virtual port to expose on the Onion.
     target_addr: 127.0.0.1 # The target address of the service.
