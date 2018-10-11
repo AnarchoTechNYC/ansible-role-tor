@@ -2,7 +2,13 @@
 
 An [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html) for building a [Tor](https://torproject.org/) server from source. Notably, this role has been tested with [Raspbian](https://www.raspbian.org/) on [Raspberry Pi](https://www.raspberrypi.org/) hardware. Its purpose is to make it simple to install a Tor server that can be configured as an [Onion service server](https://www.torproject.org/docs/onion-services).
 
-# Configuring Onion services
+## Maintaining Tor
+
+Merely Installing Tor is not sufficient for hosts where [NetSec](https://github.com/AnarchoTechNYC/meta/wiki/NetSec) considerations are critical. The installed version of Tor must be kept up-to-date in order to apply security patches. This Ansible role therefore compares the installed version of the system Tor against the latest source release provided by the Tor Project and will rebuild Tor from source whenever a new version is released. This happens *every* time an Ansible play that includes this role is run.
+
+Building Tor from source can take a significant amount of time on extremely low-power hardware. (It takes ~1 hour on a Raspberry Pi model 1.) Since this can be a concern in its own right, these tasks are tagged `tor-build` and can be skipped by invoking `ansible` or `ansible-playbook` with the `--skip-tags tor-build` command-line option. See the [Task tags](#task-tags) section for more details.
+
+## Configuring Onion services
 
 This role provides [default variables](defaults/main.yml), which you can override using any of [Ansible's variable precedence rules](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable). Of these, the most important is the `onion_services` list. It describes the Onion service configuations you want to deploy. Each item in the list is a dictionary with the following keys:
 
@@ -125,3 +131,11 @@ onion_services:
 ```
 
 The above will ensure that the `/etc/tor/torrc.d/onions-available/my-service` file and the `/var/lib/tor/onion-services/my-service` directory hierarchy will be deleted. Note that since a completely missing configuration cannot be enabled, if you specify `state: absent`, the value of `enabled` is ignored (i.e., always skipped).
+
+## Task tags
+
+> :construction:
+
+The following tags are provided by this role:
+
+* `tor-build` - Tasks that build Tor from source.

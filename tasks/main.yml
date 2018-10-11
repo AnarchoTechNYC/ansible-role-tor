@@ -1,87 +1,10 @@
 ---
-# Tasks to ensure Tor is installed, running, and current.
+# Main task list. These ensure Tor is installed, running, and current.
 
-- name: Install dirmngr.
-  apt:
-    update_cache: yes
-    state: latest
-    name: dirmngr
-
-- name: Install the Tor Project's GPG public key.
-  apt_key:
-    keyserver: keys.gnupg.net
-    validate_certs: yes
-    id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
-    state: present
-
-- name: Add Tor Project's package repositories.
-  apt_repository:
-    repo: "{{ item }}"
-    state: present
-    validate_certs: yes
-  loop:
-    - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
-    - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
-
-- name: Get installed Tor version.
-  register: my_tor_version
-  shell: "tor --version | cut -d ' ' -f 3"
-  changed_when: false
-
-- name: Get repository Tor version.
-  register: repo_tor_version
-  shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
-  changed_when: false
-
-- name: Build and install updated Tor from source.
-  # When my_tor_version.stdout is the empty string, there is no Tor installed.
-  when: my_tor_version.stdout == "" or my_tor_version.stdout is version(repo_tor_version.stdout.split('-')[0], '<')
-  block:
-    - name: Install Tor build dependencies.
-      apt:
-        state: present
-        name: "{{ packages }}"
-      vars:
-        packages:
-          - build-essential
-          - fakeroot
-          - devscripts
-
-    - name: Build Tor dependencies.
-      apt:
-        name: tor
-        state: build-dep
-
-    - name: Create temporary directory for building Tor.
-      file:
-        path: "{{ tor_package_build_dir }}"
-        state: directory
-
-    - name: Build Tor from source.
-      shell: "apt source tor; cd tor-*; debuild -rfakeroot -uc -us; cd ..;"
-      args:
-        chdir: "{{ tor_package_build_dir | quote }}"
-        creates: "tor_*.orig.tar.gz"
-
-    - name: Move newly built Tor packages to predictable names.
-      shell: |
-        mv {{ tor_package_build_dir | quote }}/tor_*.deb {{ tor_package_build_dir | quote }}/tor_justbuilt.deb
-        mv {{ tor_package_build_dir | quote }}/tor-geoipdb_*.deb {{ tor_package_build_dir | quote }}/tor-geoipdb_justbuilt.deb
-      args:
-        chdir: "{{ tor_package_build_dir | quote }}"
-        creates: "tor_justbuilt.deb"
-
-    - name: Install newly built Tor packages.
-      apt:
-        deb: "{{ item }}"
-      loop:
-        - "{{ tor_package_build_dir }}/tor_justbuilt.deb"
-        - "{{ tor_package_build_dir }}/tor-geoipdb_justbuilt.deb"
-
-    - name: Remove temporary directory for building Tor.
-      file:
-        path: "{{ tor_package_build_dir }}"
-        state: absent
+- name: Build Tor.
+  include_tasks: build.yml
+  tags:
+    - tor-build
 
 - name: Create system Onion services directory.
   file:
@@ -94,9 +17,9 @@
     path: "{{ item }}"
     state: directory
     owner: debian-tor
-  loop: "{{ folders }}"
+  loop: "{{ dirs }}"
   vars:
-    folders:
+    dirs:
       - /etc/tor/torrc.d/onions-available
       - /etc/tor/torrc.d/onions-enabled
 
@@ -109,7 +32,7 @@
     line: "%include /etc/tor/torrc.d/onions-enabled"
     validate: "tor --verify-config -f %s"
   notify:
-    - Reload Tor configuration.
+    - Reload Tor.
 
 - name: Make Onion service configurations available.
   when: item.state | default('present') == "present"
@@ -142,7 +65,7 @@
     path: "/etc/tor/torrc.d/onions-enabled/{{ item.name }}"
     state: "{{ item.enabled | default('link') }}"
   loop: "{{ onion_services }}"
-  notify: Reload Tor configuration.
+  notify: Reload Tor.
 
 - name: Enable system Tor service.
   service:
