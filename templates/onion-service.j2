@@ -1,4 +1,16 @@
+{#-
+    This is a Tor Onion service configuration template.
+
+    See https://www.torproject.org/docs/tor-manual.html
+    for more information.
+
+    After certain blocks, `{{''}}` is used to ensure Ansible
+    does not chomp newlines. See:
+        https://stackoverflow.com/a/47418461
+-#}
 HiddenServiceDir {{ tor_onion_services_dir }}/{{ item.name }}
-HiddenServicePort {{ item.virtport }} {{ item.target_addr }}:{{ item.target_port }}
-HiddenServiceVersion {{ item.version }}
-{% if item.auth_type %}HiddenServiceAuthorizeClient {{ item.auth_type }} {{ item.clients | join(',') }}{% endif %}
+{% for virtport in item.virtports %}
+HiddenServicePort {{ virtport.port_number }}{% if virtport.target_addr is defined or virtport.target_port is defined %} {{ virtport.target_addr | default('127.0.0.1') }}{% if virtport.target_port is defined %}:{{ virtport.target_port | default(virtport.port_number) }}{% endif %}{% elif virtport.unix_socket is defined %} unix:{{ virtport.unix_socket }}{% endif %}{{''}}
+{% endfor %}
+HiddenServiceVersion {{ item.version | default(2) }}
+{% if item.auth_type is defined and item.auth_type %}HiddenServiceAuthorizeClient {{ item.auth_type }} {{ item.clients | join(',') }}{% endif %}

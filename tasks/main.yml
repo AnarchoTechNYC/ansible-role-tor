@@ -112,19 +112,35 @@
     - Reload Tor configuration.
 
 - name: Make Onion service configurations available.
+  when: item.state | default('present') == "present"
   template:
     src: onion-service.j2
     dest: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
     # TODO: Fix unprivileged-to-unprivileged user validation. See:
     # http://docs.ansible.com/ansible/latest/become.html#becoming-an-unprivileged-user
     #validate: "tor --verify-config -f %s"
   loop: "{{ onion_services }}"
 
-- name: Enable configured Onion services.
+- name: Remove Onion service configurations.
+  when: item.0.state | default('present') == "absent"
+  file:
+    path: "{{ item.1 }}/{{ item.0.name }}"
+    state: absent
+  loop: "{{ onion_services | product(paths) | list }}"
+  vars:
+    paths:
+      - /etc/tor/torrc.d/onions-available
+      - "{{ tor_data_dir }}/onion-services"
+
+- name: Enable Onions.
+  when: item.state | default('present') != "absent"
   file:
     src: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
     path: "/etc/tor/torrc.d/onions-enabled/{{ item.name }}"
-    state: link
+    state: "{{ item.enabled | default('link') }}"
   loop: "{{ onion_services }}"
   notify: Reload Tor configuration.
 
@@ -142,8 +158,11 @@
     state: reloaded
 
 - name: Fetch backup copies of Onion service keys.
-  # Only fetch client_keys if clients are authenticated.
-  when: item.0.auth_type or item.1 == "private_key"
+  # Only fetch client_keys if Onion service is present, enabled, and
+  # clients are authenticated.
+  when: item.0.state | default('present') == "present" and
+        item.0.enabled | default('link') != "absent" and
+        ( (item.0.auth_type is defined and item.0.auth_type != false) or item.1 == "private_key" )
   fetch:
     dest: "{{ tor_onion_services_backup_dir }}"
     src: "{{ tor_onion_services_dir }}/{{ item.0.name }}/{{ item.1 }}"
@@ -154,8 +173,11 @@
       - client_keys
 
 - name: Set local filesystem permissions on fetched Onion service keys.
-  # Only fetch client_keys if clients are authenticated.
-  when: item.0.auth_type or item.1 == "private_key"
+  # Only fetch client_keys if Onion service is present, enabled, and
+  # clients are authenticated.
+  when: item.0.state | default('present') == "present" and
+        item.0.enabled | default('link') != "absent" and
+        ( (item.0.auth_type is defined and item.0.auth_type != false) or item.1 == "private_key" )
   become: no
   local_action:
     module: file

@@ -18,10 +18,11 @@ onion_services:
 
   # This Onion service is used primarily for NAT punching.
   - name: onion-ssh # The name of the Onion service directory.
-    version: 2      # The Onion service protocol.
-    virtport: 22    # The virtual port to expose on the Onion.
-    target_addr: 127.0.0.1 # The target address of the service.
-    target_port: 22        # The target port of the service.
+    version: 2      # The Onion service protocol version.
+    virtports:      # The virtual port(s) to expose on the Onion.
+      - port_number: 22        # Port to open on public Onion side.
+        target_addr: 127.0.0.1 # The target address of the service.
+        target_port: 22        # The target port of the service.
     auth_type: stealth     # The Onion's authentication type. This
                            # can be `stealth`, `basic`, or `false`.
     clients:        # A list of clients to authenticate.
