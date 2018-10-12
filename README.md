@@ -17,6 +17,8 @@ Of this role's [default variables](defaults/main.yml), which you can override us
     * `target_port`: TCP port number of the exposed service. Defaults to `port_number` unless `unix_socket` is defined.
 * `auth_type`: Type of [Onion service authentication](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to use with which to authorize incoming client connections. This can be either `stealth`, `basic`, or `false` (which is the default if left undefined).
 * `clients`: List of [client names](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to authorize. This key is ignored unless `auth_type` is set to a value other than `false`.
+* `private_key_file`: Path to a specific `private_key` file to use for this Onion service. You should almost certainly [ensure this file is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
+* `client_keys_file`: Path to specific `client_keys` file to use for this Onion service. You should almost certainly [ensure this variable is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
 
 It may be helpful to see a few examples.
 
@@ -64,6 +66,7 @@ It may be helpful to see a few examples.
         clients:
           - admin
       - name: onion-web
+        virtports:
           - port_number: 80
           - port_number: 8080
             unix_socket: /etc/lighttpd/unix.sock
@@ -105,7 +108,9 @@ It may be helpful to see a few examples.
     ```
     This configuration will route each new incoming connection to the Onion's virtual port `443` to a random target address in the range `192.168.1.10-12:443`. With such a configuration, be certain to carefully ensure that data transported between the Onion service host and the machine at `192.168.1.10` through `192.168.1.12` is encrypted while in motion.
 
-Onion service configurations are stored in `/etc/tor/torrc.d/onions-available`, which is `%include`'ed via the main Tor configuration file, `/etc/tor/torrc`. To enable an available configuration, symlink the file for the appropriate Onion service to the `/etc/tor/torrc.d/onions-enabled` directory and reload the Tor service (by sending the main Tor process a `HUP` signal). To disable an Onion, unlink the file from the `onions-enabled` directory and reload the Tor service again.
+## Enabling and disabling Onion service configurations
+
+Onion service configurations are stored in `/etc/tor/torrc.d/onions-available` and enabled by symlinking them from `/etc/tor/torrc.d/onions-enabled`. The `onions-enabled` directory is `%include`'ed via the main Tor configuration file, `/etc/tor/torrc`. To manually enable an available configuration, symlink the file for the appropriate Onion service to the `/etc/tor/torrc.d/onions-enabled` directory and reload the Tor service (by sending the main Tor process a `HUP` signal, e.g., `sudo systemctl reload tor` or directly `sudo killall --signal HUP tor`). To manually disable an Onion, unlink the file from the `onions-enabled` directory and reload the Tor service again.
 
 The symlinks are handled by the `enabled` key, described above, so you can do something like the following to disable but not remove an Onion service configuration:
 
@@ -129,17 +134,43 @@ onion_services:
 
 The above will ensure that the `/etc/tor/torrc.d/onions-available/my-service` file and the `/var/lib/tor/onion-services/my-service` directory hierarchy will be deleted. Note that since a completely missing configuration cannot be enabled, if you specify `state: absent`, the value of `enabled` is ignored (i.e., always skipped).
 
+## Additional role variables
+
+In addition to [configuring Onion services](#configuring-onion-services) themselves, you can configure various aspects of the Tor service and this role's behavior. To do so, set any of the following variables to your desired values in your playbooks:
+
+* `tor_data_dir`: System Tor root data directory. Defaults to `/var/lib/tor`.
+* `tor_onion_services_backup_dir`: Path on the Ansible controller where configured Onion service private and client keys are stored for backup purposes. This is left undefined (commented out) by default, causing backup tasks to be skipped.
+* `tor_onion_services_backup_password`: The password with which to encrypt backups of Onion service secrets. This value should itself be encrypted! Create it with a command such as [`ansible-vault encrypt_string`](https://docs.ansible.com/ansible/latest/user_guide/vault.html#encrypt-string-for-use-in-yaml). If left undefined (commented out), backups will not be encrypted, which is almost certainly not what you want.
+* `tor_onion_services_backup_vault_id`: An optional [Ansible Vault ID](https://docs.ansible.com/ansible/latest/user_guide/vault.html#vault-ids-and-multiple-vault-passwords) with which to label encrypted Onion service backup files. This makes it possible to use a separate password for Tor backups than other secrets in your playbooks. By default, this will be the empty string (`''`), which is equivalent to no Vault ID.
+* `tor_onion_services_dir`: Parent directory of individual Onion service directories. Defaults to `{{ tor_data_dir }}/onion-services`
+* `tor_package_build_dir`: Directory in which to (re)build from source, if necessary. This directory is automatically created with `"700"` permission bits and removed upon successful re-installation. Defaults to `/tmp/tor-package-source`.
+
+Read the comments in [defaults/main.yml](defaults/main.yml) for a complete accounting of this role's default variables.
+
 ## Maintaining Tor
 
 Merely Installing Tor is not sufficient for hosts where [NetSec](https://github.com/AnarchoTechNYC/meta/wiki/NetSec) considerations are critical. The installed version of Tor must be kept up-to-date in order to apply security patches. This Ansible role therefore compares the installed version of the system Tor against the latest source release provided by the Tor Project and will rebuild Tor from source whenever a new version is released. This happens *every* time an Ansible play that includes this role is run.
 
-Building Tor from source can take a significant amount of time on extremely low-power hardware. (It takes ~1 hour on a Raspberry Pi model 1.) Since this can be a concern in its own right, these tasks are tagged `tor-build` and can be skipped by invoking `ansible` or `ansible-playbook` with the `--skip-tags tor-build` command-line option. See the [Task tags](#task-tags) section for more details.
+Building Tor from source can take a significant amount of time on extremely low-power hardware. (It takes ~1 hour on a Raspberry Pi model 1.) Since this can be a concern in its own right, these tasks are tagged `tor-build` and can be skipped by invoking `ansible` or `ansible-playbook` with the `--skip-tags tor-build` command-line option. See the [Role tags](#role-tags) section for more details.
 
+## Managing backup passwords
 
-## Task tags
+If you choose to use this role's `*backup*` variables, you are responsible for setting strong passwords. There are two passwords involved in this role's Onion service backups:
 
-> :construction:
+1. Password that encrypts and decrypts the backup copies of Onion service key files.
+1. Password that decrypts the first passwords.
+
+Safely making the first password will look something like this:
+
+```sh
+openssl rand -base64 48 | ansible-vault encrypt_string > /tmp/vault-pass.out
+```
+
+You will then be prompted to enter (and then confirm) the second of these two passwords. This second password should be stored safely, perhaps in a password/secrets management application. Please see "[Strengthening Passwords to Defend Against John](https://github.com/AnarchoTechNYC/meta/tree/master/train-the-trainers/mr-robots-netflix-n-hack/week-2/strengthening-passwords-to-defend-against-john/README.md)" for more details about general password safety and hygiene.
+
+## Role tags
 
 The following tags are provided by this role:
 
 * `tor-build` - Tasks that build Tor from source.
+* `tor-backup` - Tasks that fetch and then protect Onion service secrets (i.e., `private_key` and `client_keys` files).

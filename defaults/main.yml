@@ -11,7 +11,35 @@ tor_onion_services_dir: "{{ tor_data_dir }}/onion-services"
 # Location on the Ansible controller where the newly generated Onion
 # service private keys (and possibly authenticated client keys) will
 # be stored for backup purposes.
-tor_onion_services_backup_dir: "~/onion-services-backups"
+#
+# If left undefined (commented out), no backup tasks will run. Another
+# way to prevent backups is to pass `--skip-tags tor-backup` during an
+# Ansible play(book)'s run.
+#tor_onion_services_backup_dir: "{{ lookup('env', 'HOME') }}/onion-services-backups"
+
+# Password with which to encrypt backups of the Onion service secrets.
+# This password itself should be encrypted. Safely making a password
+# will look something like this:
+#
+#     $ openssl rand -base64 48 | ansible-vault encrypt_string > /tmp/vault-pass.out
+#     New Vault password:
+#     Confirm New Vault password:
+#
+# Then take the contents of `/tmp/vault-pass.out` and paste it as the
+# value of the value of this variable. For more info please read docs:
+# https://docs.ansible.com/ansible/latest/user_guide/vault.html#encrypt-string-for-use-in-yaml
+#
+# An unencrypted value here is possible, but strongly discouraged.
+#tor_onion_services_backup_password:
+
+# Ansible Vault ID label to use when creating encrypted backups of Tor
+# Onion service secrets. Using a Vault ID makes it possible to have
+# separate passwords for decrypting Tor secrets than the password used
+# to decrypt different roles's or playbooks's secrets.
+#
+# If left undefined (commented out), this defaults to `''`, i.e., the
+# empty string, which is equivalent to the "default" Ansible Vault ID.
+#tor_onion_services_backup_vault_id: "tor-backup"
 
 # Define the Onion services you want available on the managed host.
 onion_services:
