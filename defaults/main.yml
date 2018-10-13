@@ -41,6 +41,17 @@ tor_onion_services_dir: "{{ tor_data_dir }}/onion-services"
 # empty string, which is equivalent to the "default" Ansible Vault ID.
 #tor_onion_services_backup_vault_id: "tor-backup"
 
+# List of authentication credentials for connecting to authenticated
+# Onion services as a Tor client. For more detailed information, see:
+#
+#     https://github.com/AnarchoTechNYC/meta/wiki/Connecting-to-an-authenticated-Onion-service
+#
+# When left undefined (commented), no credentials are written to host.
+#tor_onion_services_client_credentials:
+#  - domain: example.onion
+#    cookie: an_auth_value
+#    comment: Example Onion credential.
+
 # Define the Onion services you want available on the managed host.
 onion_services:
 

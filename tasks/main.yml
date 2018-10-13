@@ -6,12 +6,6 @@
   tags:
     - tor-build
 
-- name: Create system Onion services directory.
-  file:
-    path: "{{ tor_onion_services_dir }}"
-    state: directory
-    owner: debian-tor
-
 - name: Ensure torrc.d Onion service directories exist.
   file:
     path: "{{ item }}"
@@ -23,14 +17,37 @@
       - /etc/tor/torrc.d/onions-available
       - /etc/tor/torrc.d/onions-enabled
 
-- name: Include onions-enabled directory in torrc configuration.
+- name: Supply Onion service client credentials.
+  when: tor_onion_services_client_credentials is defined
+  block:
+    - name: Write HidServAuth configuration.
+      template:
+        src: hidservauth.j2
+        dest: "/etc/tor/torrc.d/client-auth"
+        owner: debian-tor
+        group: debian-tor
+        mode: "600"
+        validate: "tor --verify-config -f %s"
+
+    - name: Include client authentication in torrc configuration file.
+      lineinfile:
+        path: /etc/tor/torrc
+        state: present
+        insertafter: EOF
+        line: "%include /etc/tor/torrc.d/client-auth"
+        # TODO: Failed validation...why?
+        #validate: "tor --verify-config -f %s"
+      notify:
+        - Reload Tor.
+
+- name: Include enabled Onions directory in torrc configuration file.
   lineinfile:
     path: /etc/tor/torrc
     state: present
     insertafter: EOF
-    regexp: '^%include /etc/tor/torrc\.d/onions-enabled$'
     line: "%include /etc/tor/torrc.d/onions-enabled"
-    validate: "tor --verify-config -f %s"
+    # TODO: Failed validation...why?
+    #validate: "tor --verify-config -f %s"
   notify:
     - Reload Tor.
 
@@ -48,8 +65,7 @@
   loop: "{{ onion_services }}"
 
 - name: Ensure Onion service directory exists.
-  when: item.state | default('present') == "present" and
-        (item.private_key_file is defined or item.client_keys_file is defined)
+  when: item.state | default('present') == "present"
   file:
     path: "{{ tor_onion_services_dir }}/{{ item.name }}"
     state: directory

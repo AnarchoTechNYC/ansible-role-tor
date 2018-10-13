@@ -4,7 +4,18 @@ An [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_r
 
 ## Configuring Onion services
 
-Of this role's [default variables](defaults/main.yml), which you can override using any of [Ansible's variable precedence rules](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable), the most important is the `onion_services` list. It describes the Onion service configuations you want implemented. Each item in the list is a dictionary with the following keys:
+> :beginner: "Onion services" were formerly known as "(Location) Hidden Services" and are sometimes still referred to by that name.
+
+Onion services is the generic name for network-capable services exposed over Tor. For example, a Dark Web site is "just" an HTTP server ([Nginx](https://www.nginx.com/), [Apache HTTPD](https://httpd.apache.org/), [Lighttpd](https://www.lighttpd.net/), [Caddy](https://caddyserver.com/), etc.) with a Tor server in front of it. A given Tor installation can function as a server or a client:
+
+* As a server, a Tor instance can accept inbound connections on virtual Onion ports received from the Tor network and route them to a "real" service either via IP address or UNIX domain socket. In this situation, the Tor instance is called an Onion service server.
+* As a client, a Tor instance can make connections to an Onion service on behalf of a userland application, such as a Web browser. This is how Tor Browser is able to connect to `.onion` domains. In this situation, the Tor instance is called an Onion service client.
+
+This Ansible role can be used to configure a system Tor installation as a server, a client, or both.
+
+### Onion service server configuration variables
+
+Of this role's [default variables](defaults/main.yml), which you can override using any of [Ansible's variable precedence rules](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable), one of the most important is the `onion_services` list. It describes the Onion service configuations you want implemented. Each item in the list is a dictionary with the following keys:
 
 * `name`: Name of [the Onion service directory](https://www.torproject.org/docs/tor-manual.html#HiddenServiceDir).
 * `state`: Whether the Onion service's configuration should be `present`, in which case its configuration file will be written, or `absent` in which case the service's associated configuration file will be removed from the managed host.
@@ -108,7 +119,7 @@ It may be helpful to see a few examples.
     ```
     This configuration will route each new incoming connection to the Onion's virtual port `443` to a random target address in the range `192.168.1.10-12:443`. With such a configuration, be certain to carefully ensure that data transported between the Onion service host and the machine at `192.168.1.10` through `192.168.1.12` is encrypted while in motion.
 
-## Enabling and disabling Onion service configurations
+#### Enabling and disabling Onion service configurations
 
 Onion service configurations are stored in `/etc/tor/torrc.d/onions-available` and enabled by symlinking them from `/etc/tor/torrc.d/onions-enabled`. The `onions-enabled` directory is `%include`'ed via the main Tor configuration file, `/etc/tor/torrc`. To manually enable an available configuration, symlink the file for the appropriate Onion service to the `/etc/tor/torrc.d/onions-enabled` directory and reload the Tor service (by sending the main Tor process a `HUP` signal, e.g., `sudo systemctl reload tor` or directly `sudo killall --signal HUP tor`). To manually disable an Onion, unlink the file from the `onions-enabled` directory and reload the Tor service again.
 
@@ -134,6 +145,49 @@ onion_services:
 
 The above will ensure that the `/etc/tor/torrc.d/onions-available/my-service` file and the `/var/lib/tor/onion-services/my-service` directory hierarchy will be deleted. Note that since a completely missing configuration cannot be enabled, if you specify `state: absent`, the value of `enabled` is ignored (i.e., always skipped).
 
+### Onion service client configuration variables
+
+There is zero additional configuration required on your part in order to connect to unauthenticated Onion services. However, an Onion service server may require that a Tor client authenticate itself before responding to its requests. Such Onion services are termed *authenticated Onion services* because they require client authentication before passing traffic to its real service.
+
+Use the `tor_onion_services_client_credentials` list to [configure authentication credentials](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) for a given client at a given Onion service. Each item in this list is a dictionary with the following keys:
+
+* `domain`: Onion domain name (including the literal `.onion` suffix) of the Onion service to which you will be authenticating. This key is required.
+* `cookie`: Authentication cookie value with which you will authenticate. This key is required.
+* `comment`: Human-readable comment describing the Onion service to which the authentication credentials belong. This key is optional.
+
+The `domain` and `cookie` keys function like a username/password combination and should therefore be encrypted using [Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html) whenever they appear in a playbook.
+
+Some examples may prove helpful. Note that these authentication cookie values are intentionally not legitimate and will fail if used with `tor --verify-config`.
+
+1. Authenticate to the Onion service at `nzh3fv6jc6jskki3.onion` using the authentication cookie value `Fjabcdef01234567890+/K`:
+    ```yml
+    tor_onion_services_client_credentials:
+      - domain: nzh3fv6jc6jskki3.onion
+        cookie: Fjabcdef01234567890+/K
+    ```
+    The above will create a configuration line such as the following:
+    ```
+    HidServAuth nzh3fv6jc6jskki3.onion Fjabcdef01234567890+/K
+    ```
+1. Authenticate to two different Onion services, while providing a comment for the latter of them:
+    ```yml
+    tor_onion_services_client_credentials:
+      - domain: uj3wazyk5u4hnvtk.onion
+        cookie: Fjabcdef01234567890+/K
+      - domain: nzh3fv6jc6jskki3.onion
+        cookie: K/+7abc098def7654321Fj
+        comment: Friendly message board.
+    ```
+    The above will create two separate configuration lines:
+    ```
+    HidServAuth uj3wazyk5u4hnvtk.onion Fjabcdef01234567890+/K
+    HidServAuth nzh3fv6jc6jskki3.onion K/+7abc098def7654321Fj Friendly message board.
+    ```
+
+Again, in a production playbook or vars file, these values should be encrypted using Ansible Vault. See [Ansible's documentation for `encrypt_string`](https://docs.ansible.com/ansible/latest/user_guide/vault.html#encrypt-string-for-use-in-yaml) for instructions on encrypting single values in YAML files. See AnarchoTech NYC's "[Connecting to an authenticated Onion service](https://github.com/AnarchoTechNYC/meta/wiki/Connecting-to-an-authenticated-Onion-service)" guide for more general details on the `HidServAuth` configuration directive.
+
+These `HidServAuth` lines will be written to the file at `/etc/tor/torrc.d/client-auth` which is `%include`'ed in the main `/etc/tor/torrc` configuation file.
+
 ## Additional role variables
 
 In addition to [configuring Onion services](#configuring-onion-services) themselves, you can configure various aspects of the Tor service and this role's behavior. To do so, set any of the following variables to your desired values in your playbooks:
@@ -158,7 +212,7 @@ Building Tor from source can take a significant amount of time on extremely low-
 If you choose to use this role's `*backup*` variables, you are responsible for setting strong passwords. There are two passwords involved in this role's Onion service backups:
 
 1. Password that encrypts and decrypts the backup copies of Onion service key files.
-1. Password that decrypts the first passwords.
+1. Password that decrypts the first password.
 
 Safely making the first password will look something like this:
 
@@ -166,7 +220,7 @@ Safely making the first password will look something like this:
 openssl rand -base64 48 | ansible-vault encrypt_string > /tmp/vault-pass.out
 ```
 
-You will then be prompted to enter (and then confirm) the second of these two passwords. This second password should be stored safely, perhaps in a password/secrets management application. Please see "[Strengthening Passwords to Defend Against John](https://github.com/AnarchoTechNYC/meta/tree/master/train-the-trainers/mr-robots-netflix-n-hack/week-2/strengthening-passwords-to-defend-against-john/README.md)" for more details about general password safety and hygiene.
+You will then be prompted to enter (and then confirm) the second of these two passwords. Be sure you store this second password safely, perhaps by using a password/secrets management application. Please see "[Strengthening Passwords to Defend Against John](https://github.com/AnarchoTechNYC/meta/tree/master/train-the-trainers/mr-robots-netflix-n-hack/week-2/strengthening-passwords-to-defend-against-john/README.md)" for more details about general password safety and hygiene.
 
 ## Role tags
 
