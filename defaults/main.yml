@@ -1,12 +1,93 @@
 ---
-# For building Tor from source.
+# Default variable assignments for Tor role.
+#
+# This file provides defaults for variables used by the Ansible role.
+# You can override any of these variables using Ansible's precendence
+# rules by supplying new variables of the same name in your own plays.
+
+# Tor configuration directives are almost one-to-one mappings between
+# the variables in this dictionary and their `torrc` file counterparts
+# described in the Tor manual. Exceptions are `HiddenService*` and the
+# `HidServAuth` directives.
+#
+# When left undefined (commented out), no associated line will be
+# written to the `torrc` configuration file. Directives that can be
+# specified multiple times are written as YAML lists and their names
+# have been pluralized.
+#
+# As this is a dictionary, if you want to override a single variable,
+# you will need to use the `combine()` filter or configure Ansible to
+# set `DEFAULT_HASH_BEHAVIOR` to `merge`. The recommended way to merge
+# dictionaries is with the `combine()` filter. More infromation can be
+# found in the Ansible documentation:
+#
+#     https://docs.ansible.com/ansible/latest/reference_appendices/config.html#default-hash-behaviour
+#
+# Leaving the `torrc` dictionary undefined results in an error. Ensure
+# it is present even if it is empty. An empty `torrc` dictionary means
+# that the Tor software's default values will be used.
+torrc:
+
+  # Directory in which Tor working data will be kept.
+  # See: https://www.torproject.org/docs/tor-manual.html#DataDirectory
+  #DataDirectory: "/var/lib/tor"
+
+  # See: https://www.torproject.org/docs/tor-manual.html#SocksPort
+  #SocksPorts:
+  #  - port: 9050
+  #    addr: 127.0.0.1
+  #    flags:
+  #      - NoDNSRequest
+  #      - OnionTrafficOnly
+  #    isolation_flags:
+  #      - IsolateClientAddr
+  #      - IsolateSOCKSAuth
+  #      - IsolateClientProtocol
+  #      - IsolateDestPort
+  #      - IsolateDestAddr
+  #      - SessionGroup=INT
+
+  # See: https://www.torproject.org/docs/tor-manual.html#ControlPort
+  #ControlPort:
+  #  port: 9051
+  #  flags:
+  #    - GroupWritable
+  #    - WorldWritable
+  #    - RelaxDirModeCheck
+
+  # See https://www.torproject.org/docs/tor-manual.html#ControlSocket
+  #ControlSocket: "/path/to/tor-control-socket"
+
+  # Hashed passwords to for the HashedControlPassword directive. As
+  # this directive can be supplied more than once, this key is a list.
+  # Values herein are actually passwords, so they should be encrypted.
+  #
+  # Passwords can be hashed using `tor --hash-password "password"`.
+  # They should then be encrypted with `ansible-vault encrypt_string`.
+  # The full procedure might look like this:
+  #
+  #     tor --hash-password "password" | ansible-vault encrypt_string
+  #
+  # See https://www.torproject.org/docs/tor-manual.html#HashedControlPassword
+  #HashedControlPasswords:
+  #  - "ansible-vault encrypted and tor-hashed password here"
+
+  # See https://www.torproject.org/docs/tor-manual.html#CookieAuthentication
+  #CookieAuthentication: false
+
+  # See https://www.torproject.org/docs/tor-manual.html#CookieAuthFile
+  #CookieAuthFile: "/path/to/tor-auth-cookie"
+
+  # See https://www.torproject.org/docs/tor-manual.html#ControlPortWriteToFile
+  #ControlPortWriteToFile: "/path/to/file"
+
+# Directory in which new versions of Tor source code will be compiled.
 tor_package_build_dir: "/tmp/tor-package-source"
 
-# For system Tor configuration.
-tor_data_dir: "/var/lib/tor"
-
-# For system Onion services configuration.
-tor_onion_services_dir: "{{ tor_data_dir }}/onion-services"
+# Root (parent) directory of Onion service working data directories.
+# If you have an Onion service named `ssh-saw`, its working directory
+# will be `{{ tor_onion_services_dir }}/ssh-saw`.
+tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/onion-services"
 
 # Location on the Ansible controller where the newly generated Onion
 # service private keys (and possibly authenticated client keys) will
@@ -47,22 +128,22 @@ tor_onion_services_dir: "{{ tor_data_dir }}/onion-services"
 #     https://github.com/AnarchoTechNYC/meta/wiki/Connecting-to-an-authenticated-Onion-service
 #
 # When left undefined (commented), no credentials are written to host.
-#tor_onion_services_client_credentials:
+#onion_services_client_credentials:
 #  - domain: example.onion
 #    cookie: an_auth_value
 #    comment: Example Onion credential.
 
 # Define the Onion services you want available on the managed host.
-onion_services:
+#onion_services:
 
-  # This Onion service is used primarily for NAT punching.
-  - name: onion-ssh # The name of the Onion service directory.
-    version: 2      # The Onion service protocol version.
-    virtports:      # The virtual port(s) to expose on the Onion.
-      - port_number: 22        # Port to open on public Onion side.
-        target_addr: 127.0.0.1 # The target address of the service.
-        target_port: 22        # The target port of the service.
-    auth_type: stealth     # The Onion's authentication type. This
-                           # can be `stealth`, `basic`, or `false`.
-    clients:        # A list of clients to authenticate.
-      - admin
+#  # This Onion service is used primarily for NAT punching.
+#  - name: onion-ssh # The name of the Onion service directory.
+#    version: 2      # The Onion service protocol version.
+#    virtports:      # The virtual port(s) to expose on the Onion.
+#      - port_number: 22        # Port to open on public Onion side.
+#        target_addr: 127.0.0.1 # The target address of the service.
+#        target_port: 22        # The target port of the service.
+#    auth_type: stealth     # The Onion's authentication type. This
+#                           # can be `stealth`, `basic`, or `false`.
+#    clients:        # A list of clients to authenticate.
+#      - admin

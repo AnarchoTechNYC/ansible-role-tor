@@ -6,16 +6,6 @@
   tags:
     - tor-build
 
-- name: Ensure system torrc configuration file exists.
-  file:
-    path: /etc/tor/torrc
-    state: touch
-    access_time: preserve
-    modification_time: preserve
-    owner: debian-tor
-    group: debian-tor
-    mode: "600"
-
 - name: Ensure torrc.d Onion service directories exist.
   file:
     path: "{{ item }}"
@@ -29,31 +19,39 @@
       - /etc/tor/torrc.d/onions-available
       - /etc/tor/torrc.d/onions-enabled
 
-- name: Supply Onion service client credentials.
-  when: tor_onion_services_client_credentials is defined
-  block:
-    - name: Write HidServAuth configuration.
-      template:
-        src: hidservauth.j2
-        dest: "/etc/tor/torrc.d/client-auth"
-        owner: debian-tor
-        group: debian-tor
-        mode: "600"
-        validate: "tor --verify-config -f %s"
+- name: Supply Tor control port password.
+  when: torrc.HashedControlPasswords is defined
+  template:
+    src: HashedControlPassword.j2
+    dest: "/etc/tor/torrc.d/control-auth"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+    validate: "tor --verify-config -f %s"
 
-    - name: Include client authentication in torrc configuration file.
-      lineinfile:
-        path: /etc/tor/torrc
-        state: present
-        insertafter: EOF
-        line: "%include /etc/tor/torrc.d/client-auth"
-        # TODO: Failed validation...why?
-        #validate: "tor --verify-config -f %s"
-      notify:
-        - Reload Tor.
+- name: Supply Onion service client credentials.
+  when: onion_services_client_credentials is defined
+  template:
+    src: HidServAuth.j2
+    dest: "/etc/tor/torrc.d/client-auth"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+    validate: "tor --verify-config -f %s"
+
+- name: Write main Tor configuration file.
+  template:
+    src: torrc.j2
+    dest: /etc/tor/torrc
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+    # TODO: Failed validation...why?
+    #validate: "tor --verify-config -f %s"
 
 - name: Make Onion service configuration available.
-  when: item.state | default('present') == "present"
+  when: onion_services is defined and
+        item.state | default('present') == "present"
   template:
     src: onion-service.j2
     dest: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
@@ -66,7 +64,8 @@
   loop: "{{ onion_services }}"
 
 - name: Ensure Onion service directory exists.
-  when: item.state | default('present') == "present"
+  when: onion_services is defined and
+        item.state | default('present') == "present"
   file:
     path: "{{ tor_onion_services_dir }}/{{ item.name }}"
     state: directory
@@ -76,7 +75,9 @@
   loop: "{{ onion_services }}"
 
 - name: Supply Onion service private key.
-  when: item.state | default('present') == "present" and item.private_key_file is defined
+  when: onion_services is defined and
+        item.state | default('present') == "present" and
+        item.private_key_file is defined
   copy:
     src: "{{ item.private_key_file }}"
     dest: "{{ tor_onion_services_dir }}/{{ item.name }}/private_key"
@@ -86,7 +87,8 @@
   loop: "{{ onion_services }}"
 
 - name: Supply Onion service client keys.
-  when: item.state | default('present') == "present" and
+  when: onion_services is defined and
+        item.state | default('present') == "present" and
         item.client_keys_file is defined and
         (item.auth_type is defined and item.auth_type)
   copy:
@@ -98,7 +100,8 @@
   loop: "{{ onion_services }}"
 
 - name: Remove Onion service configuration.
-  when: item.0.state | default('present') == "absent"
+  when: onion_services is defined and
+        item.0.state | default('present') == "absent"
   file:
     path: "{{ item.1 }}/{{ item.0.name }}"
     state: absent
@@ -106,27 +109,17 @@
   vars:
     paths:
       - /etc/tor/torrc.d/onions-available
-      - "{{ tor_data_dir }}/onion-services"
+      - "{{ tor_onion_services_dir }}"
 
 - name: Enable Onion service.
-  when: item.state | default('present') != "absent"
+  when: onion_services is defined and
+        item.state | default('present') != "absent"
   file:
     src: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
     path: "/etc/tor/torrc.d/onions-enabled/{{ item.name }}"
     state: "{{ item.enabled | default('link') }}"
   loop: "{{ onion_services }}"
   notify: Reload Tor.
-
-- name: Include enabled Onions directory in torrc configuration file.
-  lineinfile:
-    path: /etc/tor/torrc
-    state: present
-    insertafter: EOF
-    line: "%include /etc/tor/torrc.d/onions-enabled"
-    # TODO: Failed validation...why?
-    #validate: "tor --verify-config -f %s"
-  notify:
-    - Reload Tor.
 
 - name: Enable Tor service.
   service:

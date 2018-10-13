@@ -149,7 +149,7 @@ The above will ensure that the `/etc/tor/torrc.d/onions-available/my-service` fi
 
 There is zero additional configuration required on your part in order to connect to unauthenticated Onion services. However, an Onion service server may require that a Tor client authenticate itself before responding to its requests. Such Onion services are termed *authenticated Onion services* because they require client authentication before passing traffic to its real service.
 
-Use the `tor_onion_services_client_credentials` list to [configure authentication credentials](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) for a given client at a given Onion service. Each item in this list is a dictionary with the following keys:
+Use the `onion_services_client_credentials` list to [configure authentication credentials](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) for a given client at a given Onion service. Each item in this list is a dictionary with the following keys:
 
 * `domain`: Onion domain name (including the literal `.onion` suffix) of the Onion service to which you will be authenticating. This key is required.
 * `cookie`: Authentication cookie value with which you will authenticate. This key is required.
@@ -161,7 +161,7 @@ Some examples may prove helpful. Note that these authentication cookie values ar
 
 1. Authenticate to the Onion service at `nzh3fv6jc6jskki3.onion` using the authentication cookie value `Fjabcdef01234567890+/K`:
     ```yml
-    tor_onion_services_client_credentials:
+    onion_services_client_credentials:
       - domain: nzh3fv6jc6jskki3.onion
         cookie: Fjabcdef01234567890+/K
     ```
@@ -171,7 +171,7 @@ Some examples may prove helpful. Note that these authentication cookie values ar
     ```
 1. Authenticate to two different Onion services, while providing a comment for the latter of them:
     ```yml
-    tor_onion_services_client_credentials:
+    onion_services_client_credentials:
       - domain: uj3wazyk5u4hnvtk.onion
         cookie: Fjabcdef01234567890+/K
       - domain: nzh3fv6jc6jskki3.onion
@@ -190,20 +190,26 @@ These `HidServAuth` lines will be written to the file at `/etc/tor/torrc.d/clien
 
 ## Additional role variables
 
-In addition to [configuring Onion services](#configuring-onion-services) themselves, you can configure various aspects of the Tor service and this role's behavior. To do so, set any of the following variables to your desired values in your playbooks:
+In addition to [configuring Onion services](#configuring-onion-services) themselves, you can configure various aspects of the Tor service and this role's behavior. The primary method of configuring Tor is via the `torrc` dictionary. Its keys map nearly one-to-one to the Tor configuration options described in the [Tor Manual](https://www.torproject.org/docs/tor-manual.html). Where the Tor configuration allows for multiple options of the same name, the `torrc` dictionary key names have been pluralized and accept lists instead of single (scalar) values. For Tor configuration options that expect a boolean in the form of `0` for false and `1` for true, integers or booleans (`false`/`true`) may be used.  For example:
 
-* `tor_data_dir`: System Tor root data directory. Defaults to `/var/lib/tor`.
+* `torrc.DataDirectory`: System Tor root data directory. Defaults to `/var/lib/tor`. Maps to the Tor [DataDirectory](https://www.torproject.org/docs/tor-manual.html#DataDirectory) configuration option.
+* `torrc.ControlSocket`: Path to a UNIX domain socket that will accept Tor controller connections. Maps to the Tor [ControlSocket](https://www.torproject.org/docs/tor-manual.html#ControlSocket) configuration option.
+* `torrc.HashedControlPasswords`: List whose items are the equivalent of `HashedControlPassword` directives. Maps to the Tor [HashedControlPassword](https://www.torproject.org/docs/tor-manual.html#HashedControlPassword) configuration option.
+* `torrc.CookieAuthentication`: Whether or not to enable Tor controller cookie-based authentication. A value of `0` or `false` disables cookie authentication, while `1` or `true` enables it. Maps to the Tor [CookieAuthentication](https://www.torproject.org/docs/tor-manual.html#CookieAuthentication) configuration option.
+
+Moreover, you can alter this role's behavior by setting any of the following default variables:
+
 * `tor_onion_services_backup_dir`: Path on the Ansible controller where configured Onion service private and client keys are stored for backup purposes. This is left undefined (commented out) by default, causing backup tasks to be skipped.
 * `tor_onion_services_backup_password`: The password with which to encrypt backups of Onion service secrets. This value should itself be encrypted! Create it with a command such as [`ansible-vault encrypt_string`](https://docs.ansible.com/ansible/latest/user_guide/vault.html#encrypt-string-for-use-in-yaml). If left undefined (commented out), backups will not be encrypted, which is almost certainly not what you want.
 * `tor_onion_services_backup_vault_id`: An optional [Ansible Vault ID](https://docs.ansible.com/ansible/latest/user_guide/vault.html#vault-ids-and-multiple-vault-passwords) with which to label encrypted Onion service backup files. This makes it possible to use a separate password for Tor backups than other secrets in your playbooks. By default, this will be the empty string (`''`), which is equivalent to no Vault ID.
-* `tor_onion_services_dir`: Parent directory of individual Onion service directories. Defaults to `{{ tor_data_dir }}/onion-services`
+* `tor_onion_services_dir`: Parent directory of individual Onion service directories. Defaults to `{{ torrc.DataDirectory }}/onion-services`
 * `tor_package_build_dir`: Directory in which to (re)build from source, if necessary. This directory is automatically created with `"700"` permission bits and removed upon successful re-installation. Defaults to `/tmp/tor-package-source`.
 
 Read the comments in [defaults/main.yml](defaults/main.yml) for a complete accounting of this role's default variables.
 
 ## Maintaining Tor
 
-Merely Installing Tor is not sufficient for hosts where [NetSec](https://github.com/AnarchoTechNYC/meta/wiki/NetSec) considerations are critical. The installed version of Tor must be kept up-to-date in order to apply security patches. This Ansible role therefore compares the installed version of the system Tor against the latest source release provided by the Tor Project and will rebuild Tor from source whenever a new version is released. This happens *every* time an Ansible play that includes this role is run.
+Merely installing Tor is not sufficient for environments where [NetSec](https://github.com/AnarchoTechNYC/meta/wiki/NetSec) considerations are critical. The installed Tor software must be kept up-to-date to, for example, have security patches applied. This Ansible role therefore compares the installed version of the system Tor against the latest source release provided by the Tor Project and will rebuild Tor from source whenever a newer version becomes available. This happens *every* time an Ansible play that includes this role is run.
 
 Building Tor from source can take a significant amount of time on extremely low-power hardware. (It takes ~1 hour on a Raspberry Pi model 1.) Since this can be a concern in its own right, these tasks are tagged `tor-build` and can be skipped by invoking `ansible` or `ansible-playbook` with the `--skip-tags tor-build` command-line option. See the [Role tags](#role-tags) section for more details.
 

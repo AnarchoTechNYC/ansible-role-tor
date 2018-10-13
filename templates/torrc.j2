@@ -1,0 +1,44 @@
+{% if torrc.DataDirectory is defined %}
+DataDirectory {{ torrc.DataDirectory }}
+
+{% endif %}
+{% if torrc.SocksPorts is defined %}
+{% for p in torrc.SocksPorts %}
+SocksPort {% if p.addr %}{{ p.addr | default('127.0.0.1') }}:{% endif %}{{ p.port }}{% if p.flags %} {{ p.flags | join(' ') }}{% endif %}{% if p.isolation_flags %} {{ p.isolation_flags | join(' ') }}{% endif %}{{''}}
+{% endfor %}
+
+{% endif %}
+{% if torrc.ControlPort is defined %}
+ControlPort {{ torrc.ControlPort.port }}{% if torrc.ControlPort.flags is defined %}{{ torrc.ControlPort.flags | join(' ') }}{% endif %}{{''}}
+
+{% endif %}
+{% if torrc.ControlSocket is defined %}
+ControlSocket {{ torrc.ControlSocket }}
+
+{% endif %}
+{% if torrc.CookieAuthentication is defined %}
+CookieAuthentication {{ torrc.CookieAuthentication | int }}
+
+{% endif %}
+{% if torrc.CookieAuthFile is defined %}
+CookieAuthFile {{ torrc.CookieAuthFile }}
+
+{% endif %}
+{% if torrc.ControlPortWriteToFile is defined %}
+ControlPortWriteToFile {{ torrc.ControlPortWriteToFile }}
+
+{% endif %}
+{% if torrc.HashedControlPasswords is defined %}
+## When a ControlPort is used and requires password authentication,
+## the hashed passwords used to connect are stored in this file.
+%include /etc/tor/torrc.d/control-auth
+
+{% endif %}
+{% if onion_services_client_credentials is defined %}
+## When acting as a Tor client, credentials for authenticated Onion
+## services will be stored in this file.
+%include /etc/tor/torrc.d/client-auth
+
+{% endif %}
+## Enabled Onion service configurations will be symlinked here.
+%include /etc/tor/torrc.d/onions-enabled
