@@ -6,11 +6,23 @@
   tags:
     - tor-build
 
+- name: Ensure system torrc configuration file exists.
+  file:
+    path: /etc/tor/torrc
+    state: touch
+    access_time: preserve
+    modification_time: preserve
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+
 - name: Ensure torrc.d Onion service directories exist.
   file:
     path: "{{ item }}"
     state: directory
     owner: debian-tor
+    group: debian-tor
+    mode: "700"
   loop: "{{ dirs }}"
   vars:
     dirs:
@@ -39,17 +51,6 @@
         #validate: "tor --verify-config -f %s"
       notify:
         - Reload Tor.
-
-- name: Include enabled Onions directory in torrc configuration file.
-  lineinfile:
-    path: /etc/tor/torrc
-    state: present
-    insertafter: EOF
-    line: "%include /etc/tor/torrc.d/onions-enabled"
-    # TODO: Failed validation...why?
-    #validate: "tor --verify-config -f %s"
-  notify:
-    - Reload Tor.
 
 - name: Make Onion service configuration available.
   when: item.state | default('present') == "present"
@@ -115,6 +116,17 @@
     state: "{{ item.enabled | default('link') }}"
   loop: "{{ onion_services }}"
   notify: Reload Tor.
+
+- name: Include enabled Onions directory in torrc configuration file.
+  lineinfile:
+    path: /etc/tor/torrc
+    state: present
+    insertafter: EOF
+    line: "%include /etc/tor/torrc.d/onions-enabled"
+    # TODO: Failed validation...why?
+    #validate: "tor --verify-config -f %s"
+  notify:
+    - Reload Tor.
 
 - name: Enable Tor service.
   service:
