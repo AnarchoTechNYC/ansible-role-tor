@@ -13,4 +13,27 @@ HiddenServiceDir {{ tor_onion_services_dir }}/{{ item.name }}
 HiddenServicePort {{ virtport.port_number }}{% if virtport.target_addr is defined or virtport.target_port is defined %} {{ virtport.target_addr | default('127.0.0.1') }}{% if virtport.target_port is defined %}:{{ virtport.target_port | default(virtport.port_number) }}{% endif %}{% elif virtport.unix_socket is defined %} unix:{{ virtport.unix_socket }}{% endif %}{{''}}
 {% endfor %}
 HiddenServiceVersion {{ item.version | default(2) }}
-{% if item.auth_type is defined and item.auth_type %}HiddenServiceAuthorizeClient {{ item.auth_type }} {{ item.clients | join(',') }}{% endif %}
+{% if item.auth_type is defined and item.auth_type %}
+HiddenServiceAuthorizeClient {{ item.auth_type }} {{ item.clients | join(',') }}
+{% endif %}
+{% if item.Publish is defined %}
+PublishHidServDescriptors {{ item.Publish | int }}
+{% endif %}
+{% if item.DirGroupReadable is defined %}
+HiddenServiceDirGroupReadable {{ item.DirGroupReadable | int }}
+{% endif %}
+{% if item.NumIntroductionPoints is defined %}
+HiddenServiceNumIntroductionPoints {{ item.NumIntroductionPoints | int }}
+{% endif %}
+{% if item.MaxStreams is defined %}
+HiddenServiceMaxStreams {{ item.MaxStreams | int }}
+{% endif %}
+{% if item.MaxStreamsCloseCircuit is defined %}
+HiddenServiceMaxStreamsCloseCircuit {{ item.MaxStreamsCloseCircuit | int }}
+{% endif %}
+{% if item.AllowUnknownPorts is defined %}
+HiddenServiceAllowUnknownPorts {{ item.AllowUnknownPorts | int }}
+{% endif %}
+{% if item.RendPostPeriod is defined %}
+HiddenServiceRendPostPeriod {{ item.RendPostPeriod.n | int }} {{ item.RendPostPeriod.unit }}
+{% endif %}

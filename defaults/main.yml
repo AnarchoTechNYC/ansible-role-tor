@@ -28,9 +28,22 @@
 # that the Tor software's default values will be used.
 torrc:
 
+  # On startup, setuid to this user and setgid to their primary
+  # group. Effectively, the user under which Tor will run.
+  #User: toruser
+
+  # If 1 (true), Tor forks and daemonizes to the background. This 
+  # has no effect on Windows; instead you should use the --service
+  # command-line option. (Default: 0)
+  #RunAsDaemon: false
+
   # Directory in which Tor working data will be kept.
   # See: https://www.torproject.org/docs/tor-manual.html#DataDirectory
   #DataDirectory: "/var/lib/tor"
+  #DataDirectoryGroupReadable: false
+
+  #CacheDirectory: "/var/lib/tor"
+  #CacheDirectoryGroupReadable: false
 
   # See: https://www.torproject.org/docs/tor-manual.html#SocksPort
   #SocksPorts:
@@ -55,8 +68,9 @@ torrc:
   #    - WorldWritable
   #    - RelaxDirModeCheck
 
-  # See https://www.torproject.org/docs/tor-manual.html#ControlSocket
   #ControlSocket: "/path/to/tor-control-socket"
+
+  #ControlSocketsGroupWritable: false
 
   # Hashed passwords to for the HashedControlPassword directive. As
   # this directive can be supplied more than once, this key is a list.
@@ -147,3 +161,12 @@ tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/oni
 #                           # can be `stealth`, `basic`, or `false`.
 #    clients:        # A list of clients to authenticate.
 #      - admin
+#    Publish: true   # See `PublishHidServDescriptors`
+#    DirGroupReadable: false
+#    NumIntroductionPoints: 3
+#    MaxStreams: 0
+#    MaxStreamsCloseCircuit: false
+#    AllowUnknownPorts: false
+#    RendPostPeriod:
+#      n: 1
+#      unit: hour

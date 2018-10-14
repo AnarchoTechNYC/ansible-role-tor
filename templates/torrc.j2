@@ -1,5 +1,27 @@
+{#
+    Template for main `torrc` file.
+#}
+{% if torrc.User is defined %}
+User {{ torrc.User }}
+
+{% endif %}
+{% if torrc.RunAsDaemon is defined %}
+RunAsDaemon {{ torrc.RunAsDaemon | int }}
+{% endif %}
 {% if torrc.DataDirectory is defined %}
 DataDirectory {{ torrc.DataDirectory }}
+
+{% endif %}
+{% if torrc.DataDirectoryGroupReadable is defined %}
+DataDirectoryGroupReadable {{ torrc.DataDirectoryGroupReadable | int }}
+
+{% endif %}
+{% if torrc.CacheDirectory is defined %}
+CacheDirectory {{ torrc.CacheDirectory }}
+
+{% endif %}
+{% if torrc.CacheDirectoryGroupReadable is defined %}
+CacheDirectoryGroupReadable {{ torrc.CacheDirectoryGroupReadable | int }}
 
 {% endif %}
 {% if torrc.SocksPorts is defined %}
@@ -14,6 +36,10 @@ ControlPort {{ torrc.ControlPort.port }}{% if torrc.ControlPort.flags is defined
 {% endif %}
 {% if torrc.ControlSocket is defined %}
 ControlSocket {{ torrc.ControlSocket }}
+
+{% endif %}
+{% if torrc.ControlSocketsGroupWritable %}
+ControlSocketsGroupWritable {{ torrc.ControlSocketsGroupWritable | int }}
 
 {% endif %}
 {% if torrc.CookieAuthentication is defined %}
