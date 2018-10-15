@@ -29,7 +29,7 @@ Of this role's [default variables](defaults/main.yml), which you can override us
 * `auth_type`: Type of [Onion service authentication](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to use with which to authorize incoming client connections. This can be either `stealth`, `basic`, or `false` (which is the default if left undefined).
 * `clients`: List of [client names](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to authorize. This key is ignored unless `auth_type` is set to a value other than `false`.
 * `private_key_file`: Path to a specific `private_key` file to use for this Onion service. You should almost certainly [ensure this file is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
-* `client_keys_file`: Path to specific `client_keys` file to use for this Onion service. You should almost certainly [ensure this variable is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
+* `client_keys_file`: Path to a specific `client_keys` file to use for this Onion service. You should almost certainly [ensure this variable is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
 
 It may be helpful to see a few examples.
 

@@ -1,12 +1,33 @@
-{#
+{#-
     Template for main `torrc` file.
-#}
+
+    Tor configuration is read from the play(book)'s variables, mainly
+    the `torrc` dictionary.
+
+    If these values are left undefined by the play(book)'s `torrc`
+    dictionary variable, no configuration line is written for that
+    configuration option. This is equivalent to using the values in
+    the default Tor configuration file (either the file specified by
+    the `--defaults-torrc` command line option, or the default values
+    of the Tor software itself.
+
+    If the given key in the `torrc` dictionary is defined, that value
+    is written as a configuration line or lines as templated below.
+
+    See https://www.torproject.org/docs/tor-manual.html
+    for more information.
+
+    After certain blocks, `{{''}}` is used to ensure Ansible
+    does not chomp newlines. See:
+        https://stackoverflow.com/a/47418461
+-#}{% if torrc is defined %}
 {% if torrc.User is defined %}
 User {{ torrc.User }}
 
 {% endif %}
 {% if torrc.RunAsDaemon is defined %}
 RunAsDaemon {{ torrc.RunAsDaemon | int }}
+
 {% endif %}
 {% if torrc.DataDirectory is defined %}
 DataDirectory {{ torrc.DataDirectory }}
@@ -30,15 +51,19 @@ SocksPort {% if p.addr %}{{ p.addr | default('127.0.0.1') }}:{% endif %}{{ p.por
 {% endfor %}
 
 {% endif %}
+{% if torrc.SocksTimeout is defined %}
+SocksTimeout {{ torrc.SocksTimeout | int }}
+
+{% endif %}
 {% if torrc.ControlPort is defined %}
-ControlPort {{ torrc.ControlPort.port }}{% if torrc.ControlPort.flags is defined %}{{ torrc.ControlPort.flags | join(' ') }}{% endif %}{{''}}
+ControlPort {{ torrc.ControlPort.port }}{% if torrc.ControlPort.flags is defined %} {{ torrc.ControlPort.flags | join(' ') }}{% endif %}{{''}}
 
 {% endif %}
 {% if torrc.ControlSocket is defined %}
 ControlSocket {{ torrc.ControlSocket }}
 
 {% endif %}
-{% if torrc.ControlSocketsGroupWritable %}
+{% if torrc.ControlSocketsGroupWritable is defined %}
 ControlSocketsGroupWritable {{ torrc.ControlSocketsGroupWritable | int }}
 
 {% endif %}
@@ -54,10 +79,14 @@ CookieAuthFile {{ torrc.CookieAuthFile }}
 ControlPortWriteToFile {{ torrc.ControlPortWriteToFile }}
 
 {% endif %}
+{% if torrc.ControlPortFileGroupReadable is defined %}
+ControlPortFileGroupReadable {{ torrc.ControlPortFileGroupReadable | int }}
+
+{% endif %}
 {% if torrc.HashedControlPasswords is defined %}
-## When a ControlPort is used and requires password authentication,
-## the hashed passwords used to connect are stored in this file.
-%include /etc/tor/torrc.d/control-auth
+{% for password in torrc.HashedControlPasswords %}
+HashedControlPassword {{ password }}
+{% endfor %}
 
 {% endif %}
 {% if onion_services_client_credentials is defined %}
@@ -66,5 +95,67 @@ ControlPortWriteToFile {{ torrc.ControlPortWriteToFile }}
 %include /etc/tor/torrc.d/client-auth
 
 {% endif %}
+{% if torrc.AvoidDiskWrites is defined %}
+AvoidDiskWrites {{ torrc.AvoidDiskWrites | int }}
+
+{% endif %}
+{% if torrc.NoExec is defined %}
+NoExec {{ torrc.NoExec | int }}
+
+{% endif %}
+{% if torrc.LearnCircuitBuildTimeout is defined %}
+LearnCircuitBuildTimeout {{ torrc.LearnCircuitBuildTimeout | int }}
+
+{% endif %}
+{% if torrc.CircuitBuildTimeout is defined %}
+CircuitBuildTimeout {{ torrc.CircuitBuildTimeout | int }}
+
+{% endif %}
+{% if torrc.CircuitsAvailableTimeout is defined %}
+CircuitsAvailableTimeout {{ torrc.CircuitsAvailableTimeout | int }}
+
+{% endif %}
+{% if torrc.ClientOnly is defined %}
+ClientOnly {{ torrc.ClientOnly | int }}
+
+{% endif %}
+{% if torrc.ConnectionPadding is defined %}
+ConnectionPadding {{ torrc.ConnectionPadding }}
+
+{% endif %}
+{% if torrc.ReducedConnectionPadding is defined %}
+ReducedConnectionPadding {{ torrc.ReducedConnectionPadding | int }}
+
+{% endif %}
+{% if torrc.GeoIPExcludeUnknown is defined %}
+GeoIPExcludeUnknown {{ torrc.GeoIPExcludeUnknown }}
+
+{% endif %}
+{% if torrc.StrictNodes is defined %}
+StrictNodes {{ torrc.StrictNodes | int }}
+
+{% endif %}
+{% if torrc.FascistFirewall is defined %}
+FascistFirewall {{ torrc.FascistFirewall | int }}
+
+{% endif %}
+{% if torrc.NewCircuitPeriod is defined %}
+NewCircuitPeriod {{ torrc.NewCircuitPeriod | int }}
+
+{% endif %}
+{% if torrc.MaxCircuitDirtiness is defined %}
+MaxCircuitDirtiness {{ torrc.MaxCircuitDirtiness | int }}
+
+{% endif %}
+{% if torrc.MaxClientCircuitsPending is defined %}
+MaxClientCircuitsPending {{ torrc.MaxClientCircuitsPending | int }}
+
+{% endif %}
+{% if torrc.EnforceDistinctSubnets is defined %}
+EnforceDistinctSubnets {{ torrc.EnforceDistinctSubnets | int }}
+
+{% endif %}
 ## Enabled Onion service configurations will be symlinked here.
 %include /etc/tor/torrc.d/onions-enabled
+
+{% endif %}{# END if torrc is defined #}

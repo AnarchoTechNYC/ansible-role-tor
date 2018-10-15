@@ -19,16 +19,6 @@
       - /etc/tor/torrc.d/onions-available
       - /etc/tor/torrc.d/onions-enabled
 
-- name: Supply Tor control port password.
-  when: torrc.HashedControlPasswords is defined
-  template:
-    src: HashedControlPassword.j2
-    dest: "/etc/tor/torrc.d/control-auth"
-    owner: debian-tor
-    group: debian-tor
-    mode: "600"
-    validate: "tor --verify-config -f %s"
-
 - name: Supply Onion service client credentials.
   when: onion_services_client_credentials is defined
   template:
