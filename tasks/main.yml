@@ -2,9 +2,13 @@
 # Main task list. These ensure Tor is installed, running, and current.
 
 - name: Build Tor.
-  include_tasks: "build-{{ ansible_os_family | lower }}.yml"
+  include_tasks: "build-{{ ansible_os_family | default('Debian') | lower }}.yml"
   tags:
     - tor-build
+
+- name: Harden Tor with Vanguards.
+  when: tor_onion_services_vanguards is defined
+  include_tasks: harden-vanguards.yml
 
 - name: Ensure torrc.d Onion service directories exist.
   file:
@@ -111,18 +115,33 @@
   loop: "{{ onion_services }}"
   notify: Reload Tor.
 
-- name: Enable Tor service.
-  service:
-    name: tor
-    state: started
-    enabled: yes
-
-# We do this immediately rather than as a handler in order to ensure
-# that we will have generated Onion service keys to backup, next.
-- name: Apply Tor configuration.
+- name: Enable new Tor config.
   service:
     name: tor
     state: reloaded
+    enabled: yes
+  changed_when: false
+
+- name: Perform Vanguards setup.
+  when: tor_onion_services_vanguards is defined
+  block:
+    - name: Create Vanguards run directory.
+      file:
+        path: /var/run/vanguards
+        state: directory
+        mode: "700"
+
+    - name: Write Vanguards runtime arguments.
+      template:
+        src: "vanguards.py-cmdline.j2"
+        dest: /var/run/vanguards/cmdline
+        mode: "600"
+
+    - name: Run Vanguards as daemon script.
+      shell: "nohup /usr/local/bin/vanguards/src/vanguards.py $(cat /var/run/vanguards/cmdline) </dev/null >/dev/null &2>1 &"
+      args:
+        chdir: /var/run/vanguards
+        creates: "{{ tor_onion_services_vanguards.args.state | default('/var/run/vanguards/vanguards.state') }}"
 
 - name: Backup Onion service secrets.
   when: tor_onion_services_backup_dir is defined

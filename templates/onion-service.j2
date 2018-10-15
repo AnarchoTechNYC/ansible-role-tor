@@ -35,5 +35,5 @@ HiddenServiceMaxStreamsCloseCircuit {{ item.MaxStreamsCloseCircuit | int }}
 HiddenServiceAllowUnknownPorts {{ item.AllowUnknownPorts | int }}
 {% endif %}
 {% if item.RendPostPeriod is defined %}
-HiddenServiceRendPostPeriod {{ item.RendPostPeriod.n | int | default(1) }} {{ item.RendPostPeriod.unit | default('hour') }}
+RendPostPeriod {{ item.RendPostPeriod.n | int }} {{ item.RendPostPeriod.unit }}
 {% endif %}

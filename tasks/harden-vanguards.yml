@@ -1,0 +1,20 @@
+---
+# Tasks for high-security hardening of Onion services.
+
+- name: Install Vanguards add-on dependencies.
+  include_tasks: "harden-vanguards-{{ ansible_os_family | default('Debian') | lower }}.yml"
+
+- name: Import Vanguard GPG code signing key.
+  command: "gpg --keyserver hkps://keys.gnupg.net --recv-key C963C21D63564E2B10BB335B29846B3C683686CC"
+  register: import_result
+  changed_when: "'imported: 1' in import_result.stderr_lines[-1]"
+
+- name: Install Vanguards from Git.
+  git:
+    clone: yes
+    repo: https://github.com/mikeperry-tor/vanguards.git
+    dest: /usr/local/bin/vanguards
+    separate_git_dir: /usr/local/src/vanguards
+    version: "{{ tor_onion_services_vanguards.version | default('master') }}"
+    verify_commit: yes
+    umask: "077"

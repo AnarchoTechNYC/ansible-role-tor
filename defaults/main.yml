@@ -136,6 +136,27 @@ tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/oni
 # empty string, which is equivalent to the "default" Ansible Vault ID.
 #tor_onion_services_backup_vault_id: "tor-backup"
 
+# Vanguards is a Tor controller add-on that implements numerous Onion
+# service defenses ahead of their implementation in Tor-core. These
+# are intended for Onions which require the highest possible level of
+# security as soon as possible. For more information, see the project:
+#
+#     https://github.com/mikeperry-tor/vanguards/#readme
+#
+# Set to a release tag to install and run that version of Vanguards.
+#tor_onion_services_vanguards:
+#  version: "v0.2.2"
+#  args: # The `args` dict is required even if it's left empty (no args).
+#    state: "/var/run/vanguards/vanguards.state"
+#    config: "/path/to/vanguards/config/file"
+#    control_ip: "{{ inventory_hostname }}"
+#    control_port: "{{ torrc.ControlPort.port }}"
+#    control_socket: "{{ torrc.ControlSocket }}"
+#    control_pass: "{{ torrc.HashedControlPasswords[0] }}"
+#    disable_vanguards: false
+#    disable_bandguards: true
+#    enable_cbtverify: true
+
 # List of authentication credentials for connecting to authenticated
 # Onion services as a Tor client. For more detailed information, see:
 #

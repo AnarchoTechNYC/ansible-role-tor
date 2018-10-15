@@ -1,0 +1,18 @@
+---
+# Installs Vanguards Tor controller add-on dependencies on Debian.
+
+- name: Install Python.
+  apt:
+    name: python
+    state: present
+
+- name: Install Stem.
+  apt:
+    name: python-stem
+    state: present
+
+- name: Install Git.
+  apt:
+    name: git
+    state: present
+

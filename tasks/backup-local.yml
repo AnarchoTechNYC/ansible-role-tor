@@ -1,5 +1,6 @@
 ---
 # Tasks to fetch and protect backup copies of Onion service secrets.
+
 - name: Backup Onion service secrets to Ansible controller.
   vars:
     files:

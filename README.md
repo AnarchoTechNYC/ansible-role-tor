@@ -1,6 +1,6 @@
 # Anarcho-Tech NYC: Tor
 
-An [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html) for building a [Tor](https://torproject.org/) server from source. Notably, this role has been tested with [Raspbian](https://www.raspbian.org/) on [Raspberry Pi](https://www.raspberrypi.org/) hardware. Its purpose is to make it simple to install a Tor server that can be configured as an [Onion service server](https://www.torproject.org/docs/onion-services).
+An [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html) for building a [Tor](https://torproject.org/) server from source. Notably, this role has been tested with [Raspbian](https://www.raspbian.org/) on [Raspberry Pi](https://www.raspberrypi.org/) hardware and supports the [Vanguards](https://github.com/mikeperry-tor/vanguards) high-security Onion service Tor controller add-on script. This role's purpose is to make it simple to install a system Tor that can be configured as a high-security [Onion service server](https://www.torproject.org/docs/onion-services).
 
 ## Configuring Onion services
 
@@ -203,6 +203,17 @@ Moreover, you can alter this role's behavior by setting any of the following def
 * `tor_onion_services_backup_password`: The password with which to encrypt backups of Onion service secrets. This value should itself be encrypted! Create it with a command such as [`ansible-vault encrypt_string`](https://docs.ansible.com/ansible/latest/user_guide/vault.html#encrypt-string-for-use-in-yaml). If left undefined (commented out), backups will not be encrypted, which is almost certainly not what you want.
 * `tor_onion_services_backup_vault_id`: An optional [Ansible Vault ID](https://docs.ansible.com/ansible/latest/user_guide/vault.html#vault-ids-and-multiple-vault-passwords) with which to label encrypted Onion service backup files. This makes it possible to use a separate password for Tor backups than other secrets in your playbooks. By default, this will be the empty string (`''`), which is equivalent to no Vault ID.
 * `tor_onion_services_dir`: Parent directory of individual Onion service directories. Defaults to `{{ torrc.DataDirectory }}/onion-services`
+* `tor_onion_services_vanguards`: Dictionary of options to pass to the Vanguards add-on. Its keys are:
+    * `version`: Git branch, tag, or commit hash to pass to `git checkout` when installing Vanguards.
+    * `args`: Dictionary of command line arguments to pass to the invocation of the `vanguards.py` script. This key is required, even if it remains empty. For example:
+        ```yml
+        args:
+          control_port: "{{ torrc.ControlPort.port }}"
+          control_pass: "{{ torrc.HashedControlPasswords[0] }}"
+          disable_bandguards: true
+          enable_cbtverify: true
+        ```
+        Assuming `torrc.ControlPort.port` is `9151`, this will result in an invocation of the form `./src/vangaurds.py --control_port 9151 --enable_cbtverify --disable_bandguards`.
 * `tor_package_build_dir`: Directory in which to (re)build from source, if necessary. This directory is automatically created with `"700"` permission bits and removed upon successful re-installation. Defaults to `/tmp/tor-package-source`.
 
 Read the comments in [defaults/main.yml](defaults/main.yml) for a complete accounting of this role's default variables.

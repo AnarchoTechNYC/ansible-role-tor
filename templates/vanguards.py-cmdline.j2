@@ -1,0 +1,7 @@
+{#-
+    This template writes the command line arguments with which the
+    Vanguards script will be invoked.
+-#}
+{% for opt, val in tor_onion_services_vanguards.args.items() %}
+ {% if val %}--{{ opt | quote }}{% if val is string %} {{ val | quote }}{% endif %}{% endif %}
+{% endfor %}
