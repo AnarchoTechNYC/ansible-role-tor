@@ -9,10 +9,10 @@
 
 - name: Install the Tor Project's GPG public key.
   apt_key:
-    keyserver: keys.gnupg.net
-    validate_certs: yes
+    keyserver: "hkps://keys.gnupg.net"
     id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
     state: present
+    validate_certs: yes
 
 - name: Add Tor Project's package repositories.
   apt_repository:
