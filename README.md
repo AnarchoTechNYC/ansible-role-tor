@@ -209,11 +209,22 @@ Moreover, you can alter this role's behavior by setting any of the following def
         ```yml
         args:
           control_port: "{{ torrc.ControlPort.port }}"
-          control_pass: "{{ torrc.HashedControlPasswords[0] }}"
           disable_bandguards: true
           enable_cbtverify: true
         ```
         Assuming `torrc.ControlPort.port` is `9151`, this will result in an invocation of the form `./src/vangaurds.py --control_port 9151 --enable_cbtverify --disable_bandguards`.
+        Alternatively, invoke the `vanguards.py` executable without any command line arguments by passing an empty dict:
+        ```yml
+        args:
+        ```
+    * `config`: Dictionary of configuration file options. This is arguably a better place to put any Tor controller hashed password since it does not expose the hashed password on the command line. For example:
+        ```yml
+        args:
+          config: "/etc/tor/vanguards.conf"
+        config:
+          control_pass: "{{ torrc.HashedControlPasswords[0] }}"
+        ```
+        See the [Vanguards configuration file template](templates/vanguards.conf.j2) for details about configuration file options.
 * `tor_package_build_dir`: Directory in which to (re)build from source, if necessary. This directory is automatically created with `"700"` permission bits and removed upon successful re-installation. Defaults to `/tmp/tor-package-source`.
 
 Read the comments in [defaults/main.yml](defaults/main.yml) for a complete accounting of this role's default variables.

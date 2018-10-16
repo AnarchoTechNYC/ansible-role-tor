@@ -125,6 +125,13 @@
 - name: Perform Vanguards setup.
   when: tor_onion_services_vanguards is defined
   block:
+    - name: Write Vanguards configuration file.
+      when: tor_onion_services_vanguards.config is defined
+      template:
+        src: "vanguards.conf.j2"
+        dest: /etc/tor/vanguards.conf
+        mode: "600"
+
     - name: Create Vanguards run directory.
       file:
         path: /var/run/vanguards
@@ -138,10 +145,12 @@
         mode: "600"
 
     - name: Run Vanguards as daemon script.
-      shell: "nohup /usr/local/bin/vanguards/src/vanguards.py $(cat /var/run/vanguards/cmdline) </dev/null >/dev/null &2>1 &"
+      shell: |
+        nohup /usr/local/bin/vanguards/src/vanguards.py $(cat /var/run/vanguards/cmdline) </dev/null >/dev/null &
+        echo $! > /var/run/vanguards/vanguards.pid
       args:
         chdir: /var/run/vanguards
-        creates: "{{ tor_onion_services_vanguards.args.state | default('/var/run/vanguards/vanguards.state') }}"
+        creates: "/var/run/vanguards/vanguards.pid"
 
 - name: Backup Onion service secrets.
   when: tor_onion_services_backup_dir is defined

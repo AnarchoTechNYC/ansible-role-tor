@@ -148,15 +148,23 @@ tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/oni
 #  version: "v0.2.2" # Git branch, tag, or commit hash to checkout.
 #  # The `args` dict is required even if it's left empty (no args).
 #  args: # Command-line arguments to pass to the Vanguards script.
-#    state: "/var/run/vanguards/vanguards.state"
-#    config: "/path/to/vanguards/config/file"
+#    config: "/etc/tor/vanguards.conf"
+#    disable_vanguards: false
+#    disable_bandguards: true
+#    enable_cbtverify: true
+#  config: # Configuration file options.
 #    control_ip: "{{ inventory_hostname }}"
 #    control_port: "{{ torrc.ControlPort.port }}"
 #    control_socket: "{{ torrc.ControlSocket }}"
 #    control_pass: "{{ torrc.HashedControlPasswords[0] }}"
-#    disable_vanguards: false
-#    disable_bandguards: true
-#    enable_cbtverify: true
+#    loglevel: NOTICE
+#    logfile: "/var/log/tor/vanguards.log"
+#    state_file: vanguards.state
+#    rend_use_max_consensus_weight_churn: 1.0
+#    rend_close_circuits_on_overuse: true
+#    rend_use_global_start_count: 1000
+#    rend_use_relay_start_count: 100
+#    rend_use_scale_at_count: 20000
 
 # List of authentication credentials for connecting to authenticated
 # Onion services as a Tor client. For more detailed information, see:

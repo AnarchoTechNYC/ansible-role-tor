@@ -1,0 +1,133 @@
+## Vanguards configuration file
+#
+# For more information, see the Vanguards project example:
+# https://github.com/mikeperry-tor/vanguards/blob/master/vanguards-example.conf
+
+## Global options
+[Global]
+
+# IP address that the Tor control port is listening on:
+control_ip = {{ tor_onion_services_vanguards.config.control_ip | default('127.0.0.1') }}
+
+# TCP port the control port is listening on:
+control_port = {{ tor_onion_services_vanguards.config.control_port | default('9051') }}
+
+# If set, use this filesystem control socket instead of IP+Port:
+control_socket = {{ tor_onion_services_vanguards.config.control_socket | default('') }}
+
+# If set, use this as the control port password:
+control_pass = {{ tor_onion_services_vanguards.config.control_pass | default('') }}
+
+# Enable/disable active vanguard update of layer2 and layer3 guards
+enable_vanguards = {{ tor_onion_services_vanguards.config.enable_vanguards | default(true) }}
+
+# Enable/disable the bandwidth side channel detection checks:
+enable_bandguards = {{ tor_onion_services_vanguards.config.enable_bandguards | default(true) }}
+
+# Enable/disable circuit build timeout analysis (informational only):
+enable_cbtverify = {{ tor_onion_services_vanguards.config.enable_cbt_verify | default(false) }}
+
+# Enable/disable checks on Rendezvous Point overuse attacks:
+enable_rendguard = {{ tor_onion_services_vanguards.config.enable_rendguard | default(true) }}
+
+# If True, we write (or update/rotate) layer2 and layer3 vanguards in torrc,
+# then exit. This option disables the bandguards and rendguard defenses.
+one_shot_vanguards = {{ tor_onion_services_vanguards.config.one_shot_vanguards | default(false) }}
+
+# The current loglevel:
+loglevel =  {{ tor_onion_services_vanguards.config.log_level | default('NOTICE') }}
+
+# If specified, log to this file instead of stdout:
+logfile = {{ tor_onion_services_vanguards.config.logfile | default('') }}
+
+# Name of state file (with absolute path, or relative to current directory):
+state_file = {{ tor_onion_services_vanguards.config.state_file | default('vanguards.state') }}
+
+
+## Vanguards: layer1, layer2, and layer3 rotation params.
+[Vanguards]
+
+# How long to keep our layer1 guard (0 means use Tor default):
+layer1_lifetime_days = {{ tor_onion_services_vanguards.config.layer1_lifetime_days | default(0) | int }}
+
+# The maximum amount of time to keep a layer2 guard:
+max_layer2_lifetime_hours = {{ tor_onion_services_vanguards.config.max_layer2_lifetime_hours | default(1080) | int }}
+
+# The maximum amount of time to keep a layer3 guard:
+max_layer3_lifetime_hours = {{ tor_onion_services_vanguards.config.max_layer3_lifetime_hours | default(80) | int }}
+
+# The minimum amount of time to keep a layer2 guard:
+min_layer2_lifetime_hours = {{ tor_onion_services_vanguards.config.min_layer2_lifetime_hours | default(24) | int }}
+
+# The minimum amount of time to keep a layer3 guard:
+min_layer3_lifetime_hours = {{ tor_onion_services_vanguards.config.min_layer3_lifetime_hours | default(1) | int }}
+
+# The number of layer1 guards:
+num_layer1_guards = {{ tor_onion_services_vanguards.config.num_layer1_guards | default(2) | int }}
+
+# The number of layer2 guards:
+num_layer2_guards = {{ tor_onion_services_vanguards.config.num_layer2_guards | default(3) | int }}
+
+# The number of layer3 guards:
+num_layer3_guards = {{ tor_onion_services_vanguards.config.num_layer3_guards | default(8) | int }}
+
+
+## Bandguards: Mechanisms to detect + mitigate bandwidth side channel attacks.
+[Bandguards]
+
+# Maximum number of hours to allow any circuit to remain open
+# (set to 0 to disable):
+circ_max_age_hours = {{ tor_onion_services_vanguards.config.circ_max_age_hours | default(24) | int }}
+
+# Maximum unrecognized/invalid/dropped cells on a circuit before we close
+# it. For Tor 0.3.5.1-alpha and above, this value is ignored, and 0 is used
+# instead.
+#
+# This option will soon be deprecated.
+circ_max_dropped_cells = {{ tor_onion_services_vanguards.config.circ_max_dropped_cells | default(30) | int }}
+
+# Maximum amount of kilobytes that can be present in a hidden service
+# descriptor before we close the circuit (set to 0 to disable):
+circ_max_hsdesc_kilobytes = {{ tor_onion_services_vanguards.config.circ_max_hsdesc_kilobytes | default(30) | int }}
+
+# Total maximum megabytes on any circuit before we close it. Note that
+# while HTTP GET can resume if this limit is hit, HTTP POST will not.
+# This means that applications that require large data submission (eg
+# SecureDrop or onionshare) should set this much higher
+# (or set to 0 to disable):
+circ_max_megabytes = {{ tor_onion_services_vanguards.config.circ_max_megabytes | default(0) | int }}
+
+# Warn if we can't build or use circuits for this many seconds.
+circ_max_disconnected_secs = {{ tor_onion_services_vanguards.config.circ_max_disconnected_secs | default(30) | int }}
+
+# Warn if we are disconnected from the Tor network for this many seconds.
+conn_max_disconnected_secs = {{ tor_onion_services_vanguards.config.conn_max_disconnected_secs | default(15) | int }}
+
+## Rendguard: Monitors service-side Rendezvous Points to detect misuse/attack
+[Rendguard]
+
+# No relay should show up as a Rendezvous Point more often than this ratio
+# multiplied by its bandwidth weight:
+rend_use_max_use_to_bw_ratio = {{ tor_onion_services_vanguards.config.rend_use_max_use_to_bw_ratio | default('5.0') }}
+
+# What is percent of the network weight is not in the consensus right now?
+# Put another way, the max number of rend requests from relays not in the
+# consensus is rend_use_max_use_to_bw_ratio times this churn rate.
+rend_use_max_consensus_weight_churn = {{ tor_onion_services_vanguards.config.rend_use_max_consensus_weight_churn | default('1.0') }}
+
+# Close circuits where the Rendezvous Point appears too often. Note that an
+# adversary can deliberately cause RP overuse in order to impact availability.
+# If this is a concern, either set this to false, or raise the ratio
+# parameter above.
+rend_use_close_circuits_on_overuse = {{ tor_onion_services_vanguards.config.rend_use_close_circuits_on_overuse | default(true) }}
+
+# Total number of circuits we need before we begin enforcing rendezvous point
+# ratio limits:
+rend_use_global_start_count = {{ tor_onion_services_vanguards.config.rend_use_global_start_count | default(1000) | int }}
+
+# Number of times a relay must be seen as a Rendezvous Point before applying
+# ratio limits:
+rend_use_relay_start_count = {{ tor_onion_services_vanguards.config.rend_use_relay_start_count | default(100) | int }}
+
+# Divide all relay counts by two once the total circuit count hits this many:
+rend_use_scale_at_count = {{ tor_onion_services_vanguards.config.rend_use_scale_at_count | default(20000) | int }}
