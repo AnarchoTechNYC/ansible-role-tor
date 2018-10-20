@@ -239,16 +239,24 @@ Building Tor from source can take a significant amount of time on extremely low-
 
 If you choose to use this role's `*backup*` variables, you are responsible for setting strong passwords. There are two passwords involved in this role's Onion service backups:
 
-1. Password that encrypts and decrypts the backup copies of Onion service key files.
-1. Password that decrypts the first password.
+1. Password used by the Ansible runtime that encrypts and decrypts the backup copies of Onion service key files themselves during play execution. We call this the *backup password*.
+1. Password entered by a human operator that is used to decrypt the first password for use by Ansible. We call this the *controller password*.
 
-Safely making the first password will look something like this:
+Safely making the backup password will look something like this:
 
 ```sh
 openssl rand -base64 48 | ansible-vault encrypt_string > /tmp/vault-pass.out
 ```
 
-You will then be prompted to enter (and then confirm) the second of these two passwords. Be sure you store this second password safely, perhaps by using a password/secrets management application. Please see "[Strengthening Passwords to Defend Against John](https://github.com/AnarchoTechNYC/meta/tree/master/train-the-trainers/mr-robots-netflix-n-hack/week-2/strengthening-passwords-to-defend-against-john/README.md)" for more details about general password safety and hygiene.
+You will then be prompted to enter (and then confirm) the controller password. Be sure you store this second, controller password somewhere you can access it again safely, perhaps by using a password/secrets management application. (Please see "[Strengthening Passwords to Defend Against John](https://github.com/AnarchoTechNYC/meta/tree/master/train-the-trainers/mr-robots-netflix-n-hack/week-2/strengthening-passwords-to-defend-against-john/README.md)" for more details about general password safety and hygiene.) When executing your playbooks that use this feature, you will need to invoke Ansible with the `--vault-id` option in order to supply the controller password so that Ansible can decrypt the backup password.
+
+To retrieve the backup password manually, you can [invoke an ad-hoc command](https://docs.ansible.com/ansible/latest/user_guide/intro_adhoc.html) such as the following:
+
+```sh
+ansible localhost -i inventories/example/hosts -m debug -a "msg={{ tor_onion_services_backup_password | trim }}" --vault-id @prompt
+```
+
+This will prompt you for the controller password and will show you the backup password.
 
 ## Role tags
 
