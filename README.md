@@ -143,7 +143,7 @@ onion_services:
     state: absent
 ```
 
-The above will ensure that the `/etc/tor/torrc.d/onions-available/my-service` file and the `/var/lib/tor/onion-services/my-service` directory hierarchy will be deleted. Note that since a completely missing configuration cannot be enabled, if you specify `state: absent`, the value of `enabled` is ignored (i.e., always skipped).
+The above will ensure that the `onions-enabled/my-service` file, the `onions-available/my-service` file, and the `/var/lib/tor/onion-services/my-service` directory hierarchy will be deleted. Note that since a completely missing configuration cannot be enabled, if you specify `state: absent`, the value of `enabled` is ignored.
 
 ### Onion service client configuration variables
 

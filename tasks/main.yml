@@ -17,11 +17,9 @@
     owner: debian-tor
     group: debian-tor
     mode: "700"
-  loop: "{{ dirs }}"
-  vars:
-    dirs:
-      - /etc/tor/torrc.d/onions-available
-      - /etc/tor/torrc.d/onions-enabled
+  loop:
+    - /etc/tor/torrc.d/onions-available
+    - /etc/tor/torrc.d/onions-enabled
 
 - name: Supply Onion service client credentials.
   when: onion_services_client_credentials is defined
@@ -102,6 +100,7 @@
   loop: "{{ onion_services | product(paths) | list }}"
   vars:
     paths:
+      - /etc/tor/torrc.d/onions-enabled
       - /etc/tor/torrc.d/onions-available
       - "{{ tor_onion_services_dir }}"
 
