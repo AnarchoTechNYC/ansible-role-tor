@@ -1,6 +1,7 @@
 ---
 dependencies: []
 galaxy_info:
+  role_name: tor
   author: AnarchoTechNYC
   description: Build and install a system Tor from source, with configurable Onion services.
   company: Eat The Rich, Inc.
