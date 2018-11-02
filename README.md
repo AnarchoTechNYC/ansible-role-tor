@@ -1,4 +1,4 @@
-# Anarcho-Tech NYC: Tor
+# Anarcho-Tech NYC: Tor [![Build Status](https://travis-ci.org/AnarchoTechNYC/ansible-role-tor.svg?branch=master)](https://travis-ci.org/AnarchoTechNYC/ansible-role-tor)
 
 An [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html) for building a [Tor](https://torproject.org/) server from source. Notably, this role has been tested with [Raspbian](https://www.raspbian.org/) on [Raspberry Pi](https://www.raspberrypi.org/) hardware and supports the [Vanguards](https://github.com/mikeperry-tor/vanguards) high-security Onion service Tor controller add-on script. This role's purpose is to make it simple to install a system Tor that can be configured as a high-security [Onion service server](https://www.torproject.org/docs/onion-services).
 

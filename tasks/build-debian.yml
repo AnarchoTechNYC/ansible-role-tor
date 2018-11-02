@@ -9,7 +9,7 @@
 
 - name: Install the Tor Project's GPG public key.
   apt_key:
-    keyserver: "hkps://keys.gnupg.net"
+    keyserver: pool.sks-keyservers.net
     id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
     state: present
     validate_certs: yes
@@ -20,8 +20,8 @@
     state: present
     validate_certs: yes
   loop:
-    - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
-    - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('jessie') }} main"
+    - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
+    - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
 
 - name: Get installed Tor version.
   register: my_tor_version

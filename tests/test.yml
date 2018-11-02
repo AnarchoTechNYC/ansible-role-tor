@@ -1,0 +1,11 @@
+# This Ansible playbook runs test plays to ensure the role works.
+---
+- name: Test role.
+  hosts: localhost
+  pre_tasks:
+    - name: Install cURL.
+      package:
+        name: curl
+        state: present
+  roles:
+    - ansible-role-tor
