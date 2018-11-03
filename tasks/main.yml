@@ -70,26 +70,20 @@
   when: onion_services is defined and
         item.state | default('present') == "present" and
         item.private_key_file is defined
-  copy:
-    src: "{{ item.private_key_file }}"
-    dest: "{{ tor_onion_services_dir }}/{{ item.name }}/private_key"
-    owner: debian-tor
-    group: debian-tor
-    mode: "600"
+  include_tasks: "supply-onion-secrets.yml"
   loop: "{{ onion_services }}"
+  vars:
+    secret_file: private_key
 
 - name: Supply Onion service client keys.
   when: onion_services is defined and
         item.state | default('present') == "present" and
         item.client_keys_file is defined and
         (item.auth_type is defined and item.auth_type)
-  copy:
-    src: "{{ item.client_keys_file }}"
-    dest: "{{ tor_onion_services_dir }}/{{ item.name }}/client_keys"
-    owner: debian-tor
-    group: debian-tor
-    mode: "600"
+  include_tasks: "supply-onion-secrets.yml"
   loop: "{{ onion_services }}"
+  vars:
+    secret_file: client_keys
 
 - name: Remove Onion service configuration.
   when: onion_services is defined and
