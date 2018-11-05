@@ -3,7 +3,7 @@
 
 - name: Install dirmngr.
   apt:
-    update_cache: yes
+    update_cache: true
     state: latest
     name: dirmngr
 
@@ -12,28 +12,30 @@
     keyserver: pool.sks-keyservers.net
     id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
     state: present
-    validate_certs: yes
+    validate_certs: true
 
 - name: Add Tor Project's package repositories.
   apt_repository:
     repo: "{{ item }}"
     state: present
-    validate_certs: yes
+    validate_certs: true
   loop:
     - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
     - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
 
-- name: Get installed Tor version.
-  register: my_tor_version
-  become: no
-  shell: "tor --version | cut -d ' ' -f 3"
-  changed_when: false
+- name: Check Tor version.
+  become: false
+  check_mode: false
+  block:
+    - name: Get installed Tor version.
+      register: my_tor_version
+      shell: "tor --version | cut -d ' ' -f 3"
+      changed_when: false
 
-- name: Get repository Tor version.
-  register: repo_tor_version
-  become: no
-  shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
-  changed_when: false
+    - name: Get repository Tor version.
+      register: repo_tor_version
+      shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
+      changed_when: false
 
 - name: Build and install updated Tor from source.
   # When my_tor_version.stdout is the empty string, there is no Tor installed.
@@ -55,9 +57,10 @@
         state: build-dep
 
     - name: Drop unnecessary privileges to build Tor from source.
-      become: no
+      become: false
       block:
         - name: Create temporary directory for building Tor.
+          check_mode: false
           file:
             path: "{{ tor_package_build_dir }}"
             state: directory
@@ -78,6 +81,7 @@
             creates: "tor_justbuilt.deb"
 
     - name: Install newly built Tor packages.
+      when: not ansible_check_mode
       apt:
         deb: "{{ item }}"
       loop:
@@ -85,6 +89,7 @@
         - "{{ tor_package_build_dir }}/tor-geoipdb_justbuilt.deb"
 
     - name: Remove temporary directory for building Tor.
+      check_mode: false
       file:
         path: "{{ tor_package_build_dir }}"
         state: absent

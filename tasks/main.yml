@@ -112,7 +112,7 @@
   service:
     name: tor
     state: reloaded
-    enabled: yes
+    enabled: true
   changed_when: false
 
 - name: Perform Vanguards setup.

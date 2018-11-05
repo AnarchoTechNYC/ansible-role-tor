@@ -11,10 +11,10 @@
 
 - name: Install Vanguards from Git.
   git:
-    clone: yes
+    clone: true
     repo: https://github.com/mikeperry-tor/vanguards.git
     dest: /usr/local/bin/vanguards
     separate_git_dir: /usr/local/src/vanguards
     version: "{{ tor_onion_services_vanguards.version | default('master') }}"
-    verify_commit: yes
+    verify_commit: true
     umask: "077"
