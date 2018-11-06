@@ -8,7 +8,7 @@
 
 - name: Harden Tor with Vanguards.
   when: tor_onion_services_vanguards is defined
-  include_tasks: harden-vanguards.yml
+  import_tasks: harden-vanguards.yml
 
 - name: Ensure torrc.d Onion service directories exist.
   file:
@@ -147,6 +147,6 @@
 
 - name: Backup Onion service secrets.
   when: tor_onion_services_backup_dir is defined
-  include_tasks: backup-local.yml
+  import_tasks: backup-local.yml
   tags:
     - tor-backup
