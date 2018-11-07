@@ -42,13 +42,13 @@ script:
 
   # Ensure the role/playbook runs without errors or failures.
   - >
-    docker exec --tty "$(cat ${container_id})" env TERM=xterm
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
     ansible-playbook /etc/ansible/roles/ansible-role-tor/tests/test.yml
 
   # Run the role/playbook again to test idempotence.
   - idempotence=$(mktemp)
   - >
-    docker exec "$(cat ${container_id})"
+    docker container exec "$(cat ${container_id})"
     ansible-playbook /etc/ansible/roles/ansible-role-tor/tests/test.yml
     | tee -a ${idempotence}
   - >
@@ -57,10 +57,46 @@ script:
     && (echo 'Idempotence test: pass' && exit 0)
     || (echo 'Idempotence test: fail' && exit 1)
 
+  # Ensure Tor is built and runs successfuly as a client.
   - >
-    docker exec --tty "$(cat ${container_id})" env TERM=xterm
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
     curl --silent --proxy socks5://127.0.0.1:9050 https://check.torproject.org/api/ip
     | grep -q 'IsTor":true'
+
+  # Ensure Tor Onion service is active and accessible.
+  - onion=$(mktemp)
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    grep tester /var/lib/tor/onion-services/onion-test/hostname
+    | cut -d ' ' -f 1 | tee ${onion}
+  - cookie=$(mktemp)
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    grep tester /var/lib/tor/onion-services/onion-test/hostname
+    | cut -d ' ' -f 2 | tee ${cookie}
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    /bin/sh -c "echo -n HidServAuth $(cat ${onion}) $(cat ${cookie}) >> /etc/tor/torrc"
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    systemctl reload tor
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    mkdir -p /tmp/onion-www-root
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    /bin/sh -c "echo 'Onion site test: pass' > /tmp/onion-www-root/index.html"
+  - >
+    docker container exec --detach "$(cat ${container_id})"
+    /bin/sh -c "cd /tmp/onion-www-root; python -m SimpleHTTPServer"
+  - sleep 300 # Wait for Onion descriptor to propagate through Tor.
+  - >
+    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
+    curl --silent --proxy socks5h://127.0.0.1:9050 http://$(cat ${onion})/
+
+# After build failures, these commands provide additional diagnostics.
+#after_failure:
+  #- echo "something_interesting"
 
 after_script:
   - docker container rm -f "$(cat ${container_id})"

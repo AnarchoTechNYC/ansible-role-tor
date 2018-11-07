@@ -2,10 +2,22 @@
 ---
 - name: Test role.
   hosts: localhost
+  vars:
+    onion_services:
+      - name: onion-test
+        virtports:
+          - port_number: 80
+            target_addr: 127.0.0.1
+            target_port: 8000
+        auth_type: stealth
+        clients:
+          - tester
+
   pre_tasks:
     - name: Install cURL.
       package:
         name: curl
         state: present
+
   roles:
     - ansible-role-tor
