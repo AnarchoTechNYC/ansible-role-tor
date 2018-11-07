@@ -8,18 +8,20 @@
       - client_keys
   block:
     - name: Fetch backup copy of Onion service keys.
-      when: item.0.state | default('present') == "present" and
-            item.0.enabled | default('link') != "absent" and
-            ( (item.0.auth_type is defined and item.0.auth_type) or item.1 == "private_key" )
+      when:
+        - item.0.state | default('present') == "present"
+        - item.0.enabled | default('link') != "absent"
+        - ( (item.0.auth_type is defined and item.0.auth_type) or item.1 == "private_key" )
       fetch:
         dest: "{{ tor_onion_services_backup_dir }}"
         src: "{{ tor_onion_services_dir }}/{{ item.0.name }}/{{ item.1 }}"
       loop: "{{ onion_services | product(files) | list }}"
 
     - name: Protect fetched Onion service keys.
-      when: item.0.state | default('present') == "present" and
-            item.0.enabled | default('link') != "absent" and
-            ( (item.0.auth_type is defined and item.0.auth_type) or item.1 == "private_key" )
+      when:
+        - item.0.state | default('present') == "present"
+        - item.0.enabled | default('link') != "absent"
+        - ( (item.0.auth_type is defined and item.0.auth_type) or item.1 == "private_key" )
       become: false
       local_action:
         module: file
@@ -29,8 +31,9 @@
       loop: "{{ onion_services | product(files) | list }}"
 
     - name: Encrypt fetched Onion service secrets.
-      when: tor_onion_services_backup_password is defined and
-            ( (item.0.auth_type is defined and item.0.auth_type) or item.1 == "private_key" )
+      when:
+        - tor_onion_services_backup_password is defined
+        - ( (item.0.auth_type is defined and item.0.auth_type) or item.1 == "private_key" )
       no_log: true
       become: false
       local_action:

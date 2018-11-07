@@ -1,0 +1,27 @@
+---
+- name: Write Vanguards configuration file.
+  when: tor_onion_services_vanguards.config is defined
+  template:
+    src: "vanguards.conf.j2"
+    dest: /etc/tor/vanguards.conf
+    mode: "600"
+
+- name: Create Vanguards run directory.
+  file:
+    path: /var/run/vanguards
+    state: directory
+    mode: "700"
+
+- name: Write Vanguards runtime arguments.
+  template:
+    src: "vanguards.py-cmdline.j2"
+    dest: /var/run/vanguards/cmdline
+    mode: "600"
+
+- name: Run Vanguards as daemon script.
+  shell: |
+    nohup /usr/local/bin/vanguards/src/vanguards.py $(cat /var/run/vanguards/cmdline) </dev/null >/dev/null &
+    echo $! > /var/run/vanguards/vanguards.pid
+  args:
+    chdir: /var/run/vanguards
+    creates: "/var/run/vanguards/vanguards.pid"

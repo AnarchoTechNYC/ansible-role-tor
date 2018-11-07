@@ -42,8 +42,9 @@
     #validate: "tor --verify-config -f %s"
 
 - name: Make Onion service configuration available.
-  when: onion_services is defined and
-        item.state | default('present') == "present"
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
   template:
     src: onion-service.j2
     dest: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
@@ -56,8 +57,9 @@
   loop: "{{ onion_services }}"
 
 - name: Ensure Onion service directory exists.
-  when: onion_services is defined and
-        item.state | default('present') == "present"
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
   file:
     path: "{{ tor_onion_services_dir }}/{{ item.name }}"
     state: directory
@@ -67,27 +69,30 @@
   loop: "{{ onion_services }}"
 
 - name: Supply Onion service private key.
-  when: onion_services is defined and
-        item.state | default('present') == "present" and
-        item.private_key_file is defined
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
+    - item.private_key_file is defined
   include_tasks: "supply-onion-secrets.yml"
   loop: "{{ onion_services }}"
   vars:
     secret_file: private_key
 
 - name: Supply Onion service client keys.
-  when: onion_services is defined and
-        item.state | default('present') == "present" and
-        item.client_keys_file is defined and
-        (item.auth_type is defined and item.auth_type)
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
+    - item.client_keys_file is defined
+    - item.auth_type is defined and item.auth_type
   include_tasks: "supply-onion-secrets.yml"
   loop: "{{ onion_services }}"
   vars:
     secret_file: client_keys
 
 - name: Remove Onion service configuration.
-  when: onion_services is defined and
-        item.0.state | default('present') == "absent"
+  when:
+    - onion_services is defined
+    - item.0.state | default('present') == "absent"
   file:
     path: "{{ item.1 }}/{{ item.0.name }}"
     state: absent
@@ -99,8 +104,9 @@
       - "{{ tor_onion_services_dir }}"
 
 - name: Enable Onion service.
-  when: onion_services is defined and
-        item.state | default('present') != "absent"
+  when:
+    - onion_services is defined
+    - item.state | default('present') != "absent"
   file:
     src: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
     path: "/etc/tor/torrc.d/onions-enabled/{{ item.name }}"
@@ -108,7 +114,7 @@
   loop: "{{ onion_services }}"
   notify: Reload Tor.
 
-- name: Enable new Tor config.
+- name: Reload Tor to ensure current torrc is used.
   service:
     name: tor
     state: reloaded
@@ -117,33 +123,7 @@
 
 - name: Perform Vanguards setup.
   when: tor_onion_services_vanguards is defined
-  block:
-    - name: Write Vanguards configuration file.
-      when: tor_onion_services_vanguards.config is defined
-      template:
-        src: "vanguards.conf.j2"
-        dest: /etc/tor/vanguards.conf
-        mode: "600"
-
-    - name: Create Vanguards run directory.
-      file:
-        path: /var/run/vanguards
-        state: directory
-        mode: "700"
-
-    - name: Write Vanguards runtime arguments.
-      template:
-        src: "vanguards.py-cmdline.j2"
-        dest: /var/run/vanguards/cmdline
-        mode: "600"
-
-    - name: Run Vanguards as daemon script.
-      shell: |
-        nohup /usr/local/bin/vanguards/src/vanguards.py $(cat /var/run/vanguards/cmdline) </dev/null >/dev/null &
-        echo $! > /var/run/vanguards/vanguards.pid
-      args:
-        chdir: /var/run/vanguards
-        creates: "/var/run/vanguards/vanguards.pid"
+  import_tasks: main-vanguards.yml
 
 - name: Backup Onion service secrets.
   when: tor_onion_services_backup_dir is defined
