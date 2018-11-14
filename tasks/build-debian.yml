@@ -43,8 +43,9 @@
   block:
     - name: Install Tor build dependencies.
       apt:
-        state: present
         name: "{{ packages }}"
+        state: present
+        install_recommends: false
       vars:
         packages:
           - build-essential
