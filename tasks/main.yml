@@ -6,6 +6,21 @@
   tags:
     - tor-build
 
+- name: Install AppArmor profile customization.
+  when:
+    - ansible_apparmor is defined
+    - ansible_apparmor.status | default('disabled') == 'enabled'
+  block:
+    - name: Write local system_tor AppArmor profile.
+      template:
+        src: AppArmor.local.system_tor.j2
+        dest: "/etc/apparmor.d/local/system_tor"
+        owner: root
+        group: root
+        mode: "644"
+    - name: Reload system_tor AppArmor profile.
+      command: "apparmor_parser -r /etc/apparmor.d/system_tor"
+
 - name: Harden Tor with Vanguards.
   when: tor_onion_services_vanguards is defined
   import_tasks: harden-vanguards.yml

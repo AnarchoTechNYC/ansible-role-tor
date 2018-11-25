@@ -14,6 +14,11 @@
           - tester
 
   pre_tasks:
+    - name: Update APT cache (Debian).
+      when: ansible_os_family == 'Debian'
+      apt:
+        update_cache: true
+
     - name: Install cURL.
       package:
         name: curl

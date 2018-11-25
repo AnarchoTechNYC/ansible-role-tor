@@ -4,7 +4,9 @@ language: minimal
 env:
   - docker_repo: resin/rpi-raspbian
   - docker_repo: geerlingguy/docker-debian9-ansible
+  - docker_repo: geerlingguy/docker-debian8-ansible
   - docker_repo: geerlingguy/docker-ubuntu1804-ansible
+  - docker_repo: geerlingguy/docker-ubuntu1604-ansible
   # TODO: Support for RedHat-based systems.
   #- docker_repo: geerlingguy/docker-centos7-ansible
   #- docker_repo: geerlingguy/docker-fedora27-ansible
@@ -17,6 +19,7 @@ matrix:
     #       https://www.balena.io/blog/building-arm-containers-on-any-x86-machine-even-dockerhub/
     #       In the mean time, allow this to fail.
     - env: docker_repo=resin/rpi-raspbian
+    - env: docker_repo=geerlingguy/docker-debian8-ansible
 
 install:
   - docker image pull ${docker_repo}
