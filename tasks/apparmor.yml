@@ -1,0 +1,25 @@
+---
+- name: Ensure AppArmor directories exist.
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "755"
+  loop:
+    - /etc/apparmor.d
+    - /etc/apparmor.d/local
+
+- name: Write local system_tor AppArmor profile.
+  template:
+    src: AppArmor.local.system_tor.j2
+    dest: "/etc/apparmor.d/local/system_tor"
+    owner: root
+    group: root
+    mode: "644"
+
+- name: Reload system_tor AppArmor profile.
+  when:
+    - ansible_apparmor is defined
+    - ansible_apparmor.status | default('disabled') == "enabled"
+  command: "apparmor_parser --replace /etc/apparmor.d/system_tor"
