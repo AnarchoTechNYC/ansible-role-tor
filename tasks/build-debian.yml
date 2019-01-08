@@ -7,6 +7,11 @@
     state: latest
     name: dirmngr
 
+- name: Ensure APT HTTPS transport is installed.
+  package:
+    name: apt-transport-https
+    state: present
+
 - name: Install the Tor Project's GPG public key.
   apt_key:
     keyserver: pool.sks-keyservers.net
@@ -20,8 +25,8 @@
     state: present
     validate_certs: true
   loop:
-    - "deb http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
-    - "deb-src http://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
+    - "deb https://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
+    - "deb-src https://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
 
 - name: Check Tor version.
   become: false
