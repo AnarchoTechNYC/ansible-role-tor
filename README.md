@@ -119,6 +119,44 @@ It may be helpful to see a few examples.
     ```
     This configuration will route each new incoming connection to the Onion's virtual port `443` to a random target address in the range `192.168.1.10-12:443`. With such a configuration, be certain to carefully ensure that data transported between the Onion service host and the machine at `192.168.1.10` through `192.168.1.12` is encrypted while in motion.
 
+#### Overriding Onion service configurations
+
+In addition to the `onion_services` list, you can override specific Onion service configuration keys for a given Onion service configuration using the `onion_services_overrides` list. This list has the same [structure as the `onion_services` list](#onion-service-server-configuration-variables) but is intended to be placed in a higher-precedence load order (such as a group- or host-specific inventory file) or to be constructed dynamically during runtime. It can be used to, for example, define per-host Onion service ports:
+
+```yml
+# In `group_vars/all.yml` file.
+---
+onion_services:
+  - name: onion-ssh
+    virtports:
+      - port_number: 22
+    auth_type: stealth
+    clients:
+      - admin
+```
+
+```yml
+# In `host_vars/jumpbox1.example.com.yml` file.
+---
+onion_services_overrides:
+  - name: onion-ssh
+    virtports:
+      - port_number: 39741
+        target_port: 22
+```
+
+```yml
+# In `host_vars/jumpbox2.example.com.yml` file.
+---
+onion_services_overrides:
+  - name: onion-ssh
+    virtports:
+      - port_number: 12946
+        target_port: 22
+```
+
+The above will cause the `onion-ssh` service on `jumpbox1.example.com` to be exposed on port `39741`, *not* on port `22`. Meanwhile, the same `onion-ssh` service running on `jumpbox2.example.com` will be exposed on port `12946`. Nevertheless, both jump boxes will still have `auth_type: stealth` and the same `clients` list defined. Only the `port_number` and `target_port` variables will be overriden, because only they are defined in the service's dictionary in the `onion_services_overrides` list.
+
 #### Enabling and disabling Onion service configurations
 
 Onion service configurations are stored in `/etc/tor/torrc.d/onions-available` and enabled by symlinking them from `/etc/tor/torrc.d/onions-enabled`. The `onions-enabled` directory is `%include`'ed via the main Tor configuration file, `/etc/tor/torrc`. To manually enable an available configuration, symlink the file for the appropriate Onion service to the `/etc/tor/torrc.d/onions-enabled` directory and reload the Tor service (by sending the main Tor process a `HUP` signal, e.g., `sudo systemctl reload tor` or directly `sudo killall --signal HUP tor`). To manually disable an Onion, unlink the file from the `onions-enabled` directory and reload the Tor service again.

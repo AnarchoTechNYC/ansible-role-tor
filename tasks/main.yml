@@ -1,5 +1,18 @@
 # Main task list. These ensure Tor is installed, running, and current.
 ---
+- name: Register custom Onion configuration.
+  when:
+    - onion_services is defined
+    - onion_services_overrides is defined
+  block:
+    - name: Make list of overridden Onion services.
+      include_tasks: tasks/configure-onions.yml
+      loop: "{{ onion_services | product(onion_services_overrides) | list }}"
+      loop_control:
+        index_var: i
+    - name: Reset Onion service configuration from overrides list.
+      set_fact:
+        onion_services: "{{ overridden_onion_services }}"
 
 # Place AppArmor configuration on filesystem first so that it is
 # enforced by the time Tor starts after being built.

@@ -1,0 +1,12 @@
+---
+- name: Retain original Onion service configuration.
+  when: item.0.name != item.1.name
+  set_fact:
+    overridden_onion_services: >
+      {{ overridden_onion_services | default([]) + [onion_services[i]] }}
+
+- name: Override onion service configuration.
+  when: item.0.name == item.1.name
+  set_fact:
+    overridden_onion_services: >
+      {{ overridden_onion_services | default([]) + [item.0 | combine(item.1)] }}
