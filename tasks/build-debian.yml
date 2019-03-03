@@ -1,23 +1,22 @@
+# Tasks for building Tor on a Debian-derived system.
 ---
-# Tasks for building Tor.
-
-- name: Install dirmngr.
-  apt:
-    update_cache: true
-    state: latest
-    name: dirmngr
-
-- name: Ensure APT HTTPS transport is installed.
+- name: Install Tor dependencies.
   package:
-    name: apt-transport-https
-    state: present
+    name: "{{ item }}"
+  loop:
+    - apt-transport-https
+    - dirmngr
 
 - name: Install the Tor Project's GPG public key.
   apt_key:
-    keyserver: pool.sks-keyservers.net
+    # We were using the SKS Keyservers for this, but now we reliably
+    # get "packet too large" errors. Maybe someone has made the Tor
+    # GPG key unimportable, ala this bug?
+    # https://bitbucket.org/skskeyserver/sks-keyserver/issues/57/anyone-can-make-any-pgp-key-unimportable
+    #keyserver: pool.sks-keyservers.net
     id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
+    data: "{{ tor_project_openpgp_key_data }}"
     state: present
-    validate_certs: true
 
 - name: Add Tor Project's package repositories.
   apt_repository:
