@@ -2,7 +2,7 @@
 # Tasks for high-security hardening of Onion services.
 
 - name: Install Vanguards add-on dependencies.
-  include_tasks: "harden-vanguards-{{ ansible_os_family | default('Debian') | lower }}.yml"
+  include_tasks: "harden-vanguards-{{ ansible_os_family | default('Debian') | lower }}.yaml"
 
 - name: Import Vanguard GPG code signing key.
   command: "gpg --keyserver hkps://keys.gnupg.net --recv-key C963C21D63564E2B10BB335B29846B3C683686CC"

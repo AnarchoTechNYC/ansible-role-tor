@@ -15,7 +15,7 @@ This Ansible role can be used to configure a system Tor installation as a server
 
 ### Onion service server configuration variables
 
-Of this role's [default variables](defaults/main.yml), which you can override using any of [Ansible's variable precedence rules](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable), one of the most important is the `onion_services` list. It describes the Onion service configuations you want implemented. Each item in the list is a dictionary with the following keys:
+Of this role's [default variables](defaults/main.yaml), which you can override using any of [Ansible's variable precedence rules](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable), one of the most important is the `onion_services` list. It describes the Onion service configuations you want implemented. Each item in the list is a dictionary with the following keys:
 
 * `name`: Name of [the Onion service directory](https://www.torproject.org/docs/tor-manual.html#HiddenServiceDir).
 * `state`: Whether the Onion service's configuration should be `present`, in which case its configuration file will be written, or `absent` in which case the service's associated configuration file will be removed from the managed host.
@@ -34,7 +34,7 @@ Of this role's [default variables](defaults/main.yml), which you can override us
 It may be helpful to see a few examples.
 
 1. Simple SSH Onion service providing access to the Onion service host via SSH-over-Tor:
-    ```yml
+    ```yaml
     onion_services:
       - name: my-onion
         virtports:
@@ -48,7 +48,7 @@ It may be helpful to see a few examples.
     ```
     This is equivalent to `HiddenServicePort 22 127.0.0.1:22`.
 1. Authenticated stealth Onion service for a Dark Web site serving two Tor clients with the exposed HTTP server running on an alternate port on `localhost`:
-    ```yml
+    ```yaml
     onion_services:
       - name: dark-website
         virtports:
@@ -68,7 +68,7 @@ It may be helpful to see a few examples.
     ```
     With this configuration, `alice` and `bob` must [write `HidServAuth` lines in their local `torrc` files](https://github.com/AnarchoTechNYC/meta/wiki/Connecting-to-an-authenticated-Onion-service), but will then be able to enter an Onion address, e.g., `http://abcdef0123456789.onion/` in Tor Browser (connecting to the Onion's virtual port 80) to access the service listening on the Onion's real port `8080`.
 1. Multiple Onions on one server. One of the Onions has two open virtual ports. The SSH management port is available only over a `basic` authenticated Tor connection, and one of the Web servers are available over a UNIX domain socket in order to mitigate [localhost bypass attacks](https://github.com/AnarchoTechNYC/CTF/wiki/Tor#localhost-bypass-attack):
-    ```yml
+    ```yaml
     onion_services:
       - name: onion-ssh
         virtports:
@@ -97,7 +97,7 @@ It may be helpful to see a few examples.
     HiddenServiceVersion 2
     ```
 1. Single next-generation Onion site, randomly balancing across three Web app servers:
-    ```yml
+    ```yaml
     onion_services:
       - name: onion-high-availability-web
         version: 3
@@ -123,8 +123,8 @@ It may be helpful to see a few examples.
 
 In addition to the `onion_services` list, you can override specific Onion service configuration keys for a given Onion service configuration using the `onion_services_overrides` list. This list has the same [structure as the `onion_services` list](#onion-service-server-configuration-variables) but is intended to be placed in a higher-precedence load order (such as a group- or host-specific inventory file) or to be constructed dynamically during runtime. It can be used to, for example, define per-host Onion service ports:
 
-```yml
-# In `group_vars/all.yml` file.
+```yaml
+# In `group_vars/all.yaml` file.
 ---
 onion_services:
   - name: onion-ssh
@@ -135,8 +135,8 @@ onion_services:
       - admin
 ```
 
-```yml
-# In `host_vars/jumpbox1.example.com.yml` file.
+```yaml
+# In `host_vars/jumpbox1.example.com.yaml` file.
 ---
 onion_services_overrides:
   - name: onion-ssh
@@ -145,8 +145,8 @@ onion_services_overrides:
         target_port: 22
 ```
 
-```yml
-# In `host_vars/jumpbox2.example.com.yml` file.
+```yaml
+# In `host_vars/jumpbox2.example.com.yaml` file.
 ---
 onion_services_overrides:
   - name: onion-ssh
@@ -163,7 +163,7 @@ Onion service configurations are stored in `/etc/tor/torrc.d/onions-available` a
 
 The symlinks are handled by the `enabled` key, described above, so you can do something like the following to disable but not remove an Onion service configuration:
 
-```yml
+```yaml
 onion_services:
   - name: my-service
     enabled: absent
@@ -175,7 +175,7 @@ With such a configuration, the `/etc/tor/torrc.d/onions-available/my-service` fi
 
 You can also ensure that any given Onion service configurations, along with its private (and client) keys, are wiped from the expected places on disk:
 
-```yml
+```yaml
 onion_services:
   - name: my-service
     state: absent
@@ -198,7 +198,7 @@ The `domain` and `cookie` keys function like a username/password combination and
 Some examples may prove helpful. Note that these authentication cookie values are intentionally not legitimate and will fail if used with `tor --verify-config`.
 
 1. Authenticate to the Onion service at `nzh3fv6jc6jskki3.onion` using the authentication cookie value `Fjabcdef01234567890+/K`:
-    ```yml
+    ```yaml
     onion_services_client_credentials:
       - domain: nzh3fv6jc6jskki3.onion
         cookie: Fjabcdef01234567890+/K
@@ -208,7 +208,7 @@ Some examples may prove helpful. Note that these authentication cookie values ar
     HidServAuth nzh3fv6jc6jskki3.onion Fjabcdef01234567890+/K
     ```
 1. Authenticate to two different Onion services, while providing a comment for the latter of them:
-    ```yml
+    ```yaml
     onion_services_client_credentials:
       - domain: uj3wazyk5u4hnvtk.onion
         cookie: Fjabcdef01234567890+/K
@@ -244,7 +244,7 @@ Moreover, you can alter this role's behavior by setting any of the following def
 * `tor_onion_services_vanguards`: Dictionary of options to pass to the Vanguards add-on. Its keys are:
     * `version`: Git branch, tag, or commit hash to pass to `git checkout` when installing Vanguards.
     * `args`: Dictionary of command line arguments to pass to the invocation of the `vanguards.py` script. This key is required, even if it remains empty. For example:
-        ```yml
+        ```yaml
         args:
           control_port: "{{ torrc.ControlPort.port }}"
           disable_bandguards: true
@@ -252,11 +252,11 @@ Moreover, you can alter this role's behavior by setting any of the following def
         ```
         Assuming `torrc.ControlPort.port` is `9151`, this will result in an invocation of the form `./src/vangaurds.py --control_port 9151 --enable_cbtverify --disable_bandguards`.
         Alternatively, invoke the `vanguards.py` executable without any command line arguments by passing an empty dict:
-        ```yml
+        ```yaml
         args:
         ```
     * `config`: Dictionary of configuration file options. This is arguably a better place to put any Tor controller hashed password since it does not expose the hashed password on the command line. For example:
-        ```yml
+        ```yaml
         args:
           config: "/etc/tor/vanguards.conf"
         config:
@@ -265,7 +265,7 @@ Moreover, you can alter this role's behavior by setting any of the following def
         See the [Vanguards configuration file template](templates/vanguards.conf.j2) for details about configuration file options.
 * `tor_package_build_dir`: Directory in which to (re)build from source, if necessary. This directory is automatically created with `"700"` permission bits and removed upon successful re-installation. Defaults to `/tmp/tor-package-source`.
 
-Read the comments in [defaults/main.yml](defaults/main.yml) for a complete accounting of this role's default variables.
+Read the comments in [defaults/main.yaml](defaults/main.yaml) for a complete accounting of this role's default variables.
 
 ## Maintaining Tor
 

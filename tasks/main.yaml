@@ -6,7 +6,7 @@
     - onion_services_overrides is defined
   block:
     - name: Make list of overridden Onion services.
-      include_tasks: tasks/configure-onions.yml
+      include_tasks: tasks/configure-onions.yaml
       loop: "{{ onion_services | product(onion_services_overrides) | list }}"
       loop_control:
         index_var: i
@@ -17,16 +17,16 @@
 # Place AppArmor configuration on filesystem first so that it is
 # enforced by the time Tor starts after being built.
 - name: Install AppArmor profile customizations.
-  import_tasks: apparmor.yml
+  import_tasks: apparmor.yaml
 
 - name: Build Tor.
-  include_tasks: "build-{{ ansible_os_family | default('Debian') | lower }}.yml"
+  include_tasks: "build-{{ ansible_os_family | default('Debian') | lower }}.yaml"
   tags:
     - tor-build
 
 - name: Harden Tor with Vanguards.
   when: tor_onion_services_vanguards is defined
-  import_tasks: harden-vanguards.yml
+  import_tasks: harden-vanguards.yaml
 
 - name: Ensure torrc.d Onion service directories exist.
   file:
@@ -91,7 +91,7 @@
     - onion_services is defined
     - item.state | default('present') == "present"
     - item.private_key_file is defined
-  include_tasks: "supply-onion-secrets.yml"
+  include_tasks: supply-onion-secrets.yaml
   loop: "{{ onion_services }}"
   vars:
     secret_file: private_key
@@ -102,7 +102,7 @@
     - item.state | default('present') == "present"
     - item.client_keys_file is defined
     - item.auth_type is defined and item.auth_type
-  include_tasks: "supply-onion-secrets.yml"
+  include_tasks: supply-onion-secrets.yaml
   loop: "{{ onion_services }}"
   vars:
     secret_file: client_keys
@@ -141,10 +141,10 @@
 
 - name: Perform Vanguards setup.
   when: tor_onion_services_vanguards is defined
-  import_tasks: main-vanguards.yml
+  import_tasks: main-vanguards.yaml
 
 - name: Backup Onion service secrets.
   when: tor_onion_services_backup_dir is defined
-  import_tasks: backup-local.yml
+  import_tasks: backup-local.yaml
   tags:
     - tor-backup
