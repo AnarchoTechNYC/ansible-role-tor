@@ -30,6 +30,8 @@
 - name: Check Tor version.
   become: false
   check_mode: false
+  tags:
+    - tor-build
   block:
     - name: Get installed Tor version.
       register: my_tor_version
@@ -55,11 +57,15 @@
           - build-essential
           - fakeroot
           - devscripts
+      tags:
+        - tor-build
 
     - name: Build Tor dependencies.
       apt:
         name: tor
         state: build-dep
+      tags:
+        - tor-build
 
     - name: Drop unnecessary privileges to build Tor from source.
       become: false
@@ -70,12 +76,16 @@
             path: "{{ tor_package_build_dir }}"
             state: directory
             mode: "700"
+          tags:
+            - tor-build
 
         - name: Build Tor from source.
           shell: "apt source tor; cd tor-*; debuild -rfakeroot -uc -us; cd ..;"
           args:
             chdir: "{{ tor_package_build_dir | quote }}"
             creates: "tor_*.orig.tar.gz"
+          tags:
+            - tor-build
 
         - name: Move newly built Tor packages to predictable names.
           shell: |
@@ -84,6 +94,8 @@
           args:
             chdir: "{{ tor_package_build_dir | quote }}"
             creates: "tor_justbuilt.deb"
+          tags:
+            - tor-build
 
     - name: Install newly built Tor packages.
       when: not ansible_check_mode
