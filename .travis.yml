@@ -7,12 +7,11 @@ language: shell
 env:
   - docker_repo: resin/rpi-raspbian
   - docker_repo: geerlingguy/docker-debian10-ansible
-  - docker_repo: geerlingguy/docker-debian9-ansible
+  - docker_repo: geerlingguy/docker-ubuntu2004-ansible
   - docker_repo: geerlingguy/docker-ubuntu1804-ansible
-  - docker_repo: geerlingguy/docker-ubuntu1604-ansible
   # TODO: Support for RedHat-based systems.
   #- docker_repo: geerlingguy/docker-centos7-ansible
-  #- docker_repo: geerlingguy/docker-fedora27-ansible
+  #- docker_repo: geerlingguy/docker-fedora32-ansible
 
 jobs:
   # TODO: Fix these failures?
@@ -37,7 +36,7 @@ install:
   # Ansible installed (i.e., Raspbian image) will have it available.
   - >
     docker container exec --tty $(cat ${container_id}) env TERM=xterm
-    pip install ansible
+    pip3 install ansible
 
 script:
   # Check Ansible role/playbook syntax.
@@ -93,7 +92,7 @@ script:
     /bin/sh -c "echo 'Onion site test: pass' > /tmp/onion-www-root/index.html"
   - >
     docker container exec --detach "$(cat ${container_id})"
-    /bin/sh -c "cd /tmp/onion-www-root; python -m SimpleHTTPServer"
+    /bin/sh -c "cd /tmp/onion-www-root; python3 -m http.server"
   - sleep 300 # Wait for Onion descriptor to propagate through Tor.
   - >
     docker container exec --tty "$(cat ${container_id})" env TERM=xterm
