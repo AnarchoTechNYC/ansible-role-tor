@@ -22,6 +22,7 @@
   apt_repository:
     repo: "{{ item }}"
     state: present
+    mode: "0644"
     validate_certs: true
   loop:
     - "deb https://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
