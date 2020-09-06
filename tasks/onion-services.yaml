@@ -81,6 +81,7 @@
       - /etc/tor/torrc.d/onions-enabled
       - /etc/tor/torrc.d/onions-available
       - "{{ tor_onion_services_dir }}"
+  notify: Reload Tor.
 
 - name: Enable Onion service.
   when:

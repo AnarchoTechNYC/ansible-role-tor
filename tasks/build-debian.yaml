@@ -15,7 +15,7 @@
     # https://bitbucket.org/skskeyserver/sks-keyserver/issues/57/anyone-can-make-any-pgp-key-unimportable
     #keyserver: pool.sks-keyservers.net
     id: A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
-    data: "{{ tor_project_openpgp_key_data }}"
+    data: "{{ lookup('file', '../files/tor-project-openpgp-key.asc') }}"
     state: present
 
 - name: Add Tor Project's package repositories.
