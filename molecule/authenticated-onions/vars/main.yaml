@@ -1,0 +1,24 @@
+---
+onion_services:
+  - name: authenticated-onion-v3-test
+    virtports:
+      - port_number: 80
+    clients:
+      - name: tester
+        pubkey: "{{ tester_pubkey }}"
+
+  - name: authenticated-onion-v2-test
+    version: 2
+    virtports:
+      - port_number: 80
+    auth_type: stealth
+    clients:
+      - tester
+
+#onion_services_client_credentials:
+#  - name: authenticated-onion-v3-tester
+#    domain: "{{ cmd_v3.stdout }}"
+#    privkey: "{{ tester_privkey }}"
+#  - comment: authenticated-onion-v2-tester
+#    domain: "{{ cmd_v2.stdout.split(' ')[0] }}"
+#    cookie: "{{ cmd_v2.stdout.split(' ')[1] }}"

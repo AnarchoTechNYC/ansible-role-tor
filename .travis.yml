@@ -5,13 +5,10 @@ os: linux
 language: shell
 
 env:
-  - docker_repo: resin/rpi-raspbian
-  - docker_repo: geerlingguy/docker-debian10-ansible
-  - docker_repo: geerlingguy/docker-ubuntu2004-ansible
-  - docker_repo: geerlingguy/docker-ubuntu1804-ansible
-  # TODO: Support for RedHat-based systems.
-  #- docker_repo: geerlingguy/docker-centos7-ansible
-  #- docker_repo: geerlingguy/docker-fedora32-ansible
+  - docker_repo=geerlingguy/docker-debian10-ansible
+  - docker_repo=geerlingguy/docker-ubuntu2004-ansible
+  - docker_repo=geerlingguy/docker-ubuntu1804-ansible
+  - docker_repo=resin/rpi-raspbian
 
 jobs:
   # TODO: Fix these failures?
@@ -22,85 +19,15 @@ jobs:
     #       In the mean time, allow this to fail.
     - env: docker_repo=resin/rpi-raspbian
 
-install:
-  - docker image pull ${docker_repo}
-  - container_id=$(mktemp)
-  - >
-    docker container run --detach --privileged
-    --volume /sys/fs/cgroup:/sys/fs/cgroup:ro
-    --volume ${PWD}:/etc/ansible/roles/ansible-role-tor:ro
-    ${docker_repo}:latest > ${container_id}
+before_install:
+    # Upgrade to newest Docker Engine.
+    - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    - sudo apt-get update
+    - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
 
-  # Bootstrap to ensure Ansible is available in the container.
-  # This is to ensure that the containers not already pre-imaged with
-  # Ansible installed (i.e., Raspbian image) will have it available.
-  - >
-    docker container exec --tty $(cat ${container_id}) env TERM=xterm
-    pip3 install ansible
+install:
+    - pip install --user molecule ansible-lint docker
 
 script:
-  # Check Ansible role/playbook syntax.
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    ansible-playbook --syntax-check /etc/ansible/roles/ansible-role-tor/tests/test.yaml
-
-  # Ensure the role/playbook runs without errors or failures.
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    ansible-playbook /etc/ansible/roles/ansible-role-tor/tests/test.yaml
-
-  # Run the role/playbook again to test idempotence.
-  - idempotence=$(mktemp)
-  - >
-    docker container exec "$(cat ${container_id})"
-    ansible-playbook /etc/ansible/roles/ansible-role-tor/tests/test.yaml
-    | tee -a ${idempotence}
-  - >
-    tail ${idempotence}
-    | grep -q 'changed=0.*failed=0'
-    && (echo 'Idempotence test: pass' && exit 0)
-    || (echo 'Idempotence test: fail' && exit 1)
-
-  # Ensure Tor is built and runs successfuly as a client.
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    curl --silent --proxy socks5://127.0.0.1:9050 https://check.torproject.org/api/ip
-    | grep -q 'IsTor":true'
-
-  # Ensure Tor Onion service is active and accessible.
-  - onion=$(mktemp)
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    grep tester /var/lib/tor/onion-services/onion-test/hostname
-    | cut -d ' ' -f 1 | tee ${onion}
-  - cookie=$(mktemp)
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    grep tester /var/lib/tor/onion-services/onion-test/hostname
-    | cut -d ' ' -f 2 | tee ${cookie}
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    /bin/sh -c "echo -n HidServAuth $(cat ${onion}) $(cat ${cookie}) >> /etc/tor/torrc"
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    systemctl reload tor
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    mkdir -p /tmp/onion-www-root
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    /bin/sh -c "echo 'Onion site test: pass' > /tmp/onion-www-root/index.html"
-  - >
-    docker container exec --detach "$(cat ${container_id})"
-    /bin/sh -c "cd /tmp/onion-www-root; python3 -m http.server"
-  - sleep 300 # Wait for Onion descriptor to propagate through Tor.
-  - >
-    docker container exec --tty "$(cat ${container_id})" env TERM=xterm
-    curl --silent --proxy socks5h://127.0.0.1:9050 http://$(cat ${onion})/
-
-# After build failures, these commands provide additional diagnostics.
-#after_failure:
-  #- echo "something_interesting"
-
-after_script:
-  - docker container rm -f "$(cat ${container_id})"
+    - molecule test

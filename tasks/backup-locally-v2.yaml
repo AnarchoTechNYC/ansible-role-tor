@@ -34,3 +34,4 @@
     responses:
       password: "{{ tor_onion_services_backup_password }}"
   loop: "{{ files }}"
+  changed_when: false

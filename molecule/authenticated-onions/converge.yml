@@ -1,8 +1,6 @@
 ---
 - name: Converge
   hosts: all
-  vars_files:
-    - vars/main.yaml
   tasks:
     - name: Import ansible-role-tor
       become: true

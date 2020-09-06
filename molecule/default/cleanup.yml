@@ -1,0 +1,12 @@
+---
+- name: Cleanup
+  hosts: all
+  vars_files:
+    - vars/main.yaml
+
+  tasks:
+    - name: Cleanup temporary backup directory.
+      local_action:
+          module: file
+          path: "{{ tor_onion_services_backup_dir }}"
+          state: absent

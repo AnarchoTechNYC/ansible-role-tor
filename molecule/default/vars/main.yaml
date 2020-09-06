@@ -1,0 +1,14 @@
+---
+# Set a backup directory so we test the backup tasks, too.
+tor_onion_services_backup_dir: "tmp/molecule-tests-onion-backups"
+onion_services:
+  - name: onion-v3-test
+    # The role makes v3 onions by default, so this can be omitted.
+    #version: 3
+    virtports:
+      - port_number: 80
+
+  - name: onion-v2-test
+    version: 2
+    virtports:
+      - port_number: 80

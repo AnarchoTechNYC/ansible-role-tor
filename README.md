@@ -81,6 +81,7 @@ It may be helpful to see a few examples.
     ```yaml
     onion_services:
       - name: dark-website
+        version: 2
         virtports:
           - port_number: 80
             target_port: 8080
@@ -101,6 +102,7 @@ It may be helpful to see a few examples.
     ```yaml
     onion_services:
       - name: onion-ssh
+        version: 2
         virtports:
           - port_number: 22
         auth_type: basic
@@ -217,17 +219,19 @@ The above will ensure that the `onions-enabled/my-service` file, the `onions-ava
 
 There is zero additional configuration required on your part in order to connect to unauthenticated Onion services. However, an Onion service server may require that a Tor client authenticate itself before responding to its requests. Such Onion services are termed *authenticated Onion services* because they require client authentication before passing traffic to its real service.
 
-Use the `onion_services_client_credentials` list to [configure authentication credentials](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) for a given client at a given Onion service. Each item in this list is a dictionary with the following keys:
+Use the `onion_services_client_credentials` list to [configure authentication credentials](https://community.torproject.org/onion-services/advanced/client-auth/) for a given client at a given Onion service. The single list contains both v2 and v3 Onion credentials. Each item in this list is a dictionary with the following keys:
 
-* `domain`: Onion domain name (including the literal `.onion` suffix) of the Onion service to which you will be authenticating. This key is required.
-* `cookie`: Authentication cookie value with which you will authenticate. This key is required.
-* `comment`: Human-readable comment describing the Onion service to which the authentication credentials belong. This key is optional.
+* `domain` (both v3 and v2 Onions): Onion domain name (including the literal `.onion` suffix) of the Onion service to which you will be authenticating. This key is required.
+* `name` (version 3 Onions only): Name of the client credential.
+* `privkey` (version 3 Onions only): The Base32-encoded x25519 private key to use for authentication to the Onion service.
+* `cookie` (version 2 Onions only): Authentication cookie value with which you will authenticate. This key is required.
+* `comment` (version 2 Onions only): Human-readable comment describing the Onion service to which the authentication credentials belong. This key is optional.
 
-The `domain` and `cookie` keys function like a username/password combination and should therefore be encrypted using [Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html) whenever they appear in a playbook.
+For version 3 Onions, the `privkey` is a secret key that you should protect. Similarly, for version 2 Onions, the `domain` and `cookie` keys function like a username/password combination. These sensitive values should therefore be encrypted using [Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html) whenever they appear in a playbook.
 
 Some examples may prove helpful. Note that these authentication cookie values are intentionally not legitimate and will fail if used with `tor --verify-config`.
 
-1. Authenticate to the Onion service at `nzh3fv6jc6jskki3.onion` using the authentication cookie value `Fjabcdef01234567890+/K`:
+1. Authenticate to the v2 Onion service at `nzh3fv6jc6jskki3.onion` using the authentication cookie value `Fjabcdef01234567890+/K`:
     ```yaml
     onion_services_client_credentials:
       - domain: nzh3fv6jc6jskki3.onion
