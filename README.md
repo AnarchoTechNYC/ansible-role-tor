@@ -27,10 +27,10 @@ Of this role's [default variables](defaults/main.yaml), which you can override u
     * `target_addr`: The IPv4 or IPv6 address of the Torified service, if the service listens for incoming connections on an internet socket. Defaults to `127.0.0.1` if neither this key nor `unix_socket` are defined.
     * `target_port`: TCP port number of the exposed service. Defaults to `port_number` unless `unix_socket` is defined.
 * `auth_type`: Type of [(v2) Onion service authentication](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to use with which to authorize incoming client connections. This can be either `stealth`, `basic`, or `false` (which is the default if left undefined). This should be omitted for v3 Onion services.
-* `clients`: Authorized clients for the Onion service.
-    * For a v3 Onion service, this is a dictionary with a structure as follows:
+* `clients`: List of authorized clients for the Onion service.
+    * For a v3 Onion service, each item in this list is a dictionary with a structure as follows:
         - `name` - The client's name. This becomes the basename for the client's `.auth` file.
-        - `pubkey` - The Base32-encoded X25519 public key for this client.
+        - `pubkey` - The Base32-encoded X25519 public key for this client. To generate this value, you can use [`tor-auth-x25519-gen.py`](molecule/default/scripts/tor-auth-x25519-gen.py).
         - `keyType`: Always set to `x25519`, as this is the only supported type of Onion key.
         - `state`: Whether the client's `.auth` file will be `present` or `absent`. Defaults to `present`.
     * For a v2 Onion service, this is the list of [client names](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to authorize. This key is ignored unless `auth_type` is set to a value other than `false`.
@@ -223,7 +223,7 @@ Use the `onion_services_client_credentials` list to [configure authentication cr
 
 * `domain` (both v3 and v2 Onions): Onion domain name (including the literal `.onion` suffix) of the Onion service to which you will be authenticating. This key is required.
 * `name` (version 3 Onions only): Name of the client credential.
-* `privkey` (version 3 Onions only): The Base32-encoded x25519 private key to use for authentication to the Onion service.
+* `privkey` (version 3 Onions only): The Base32-encoded x25519 private key to use for authentication to the Onion service. To generate this value, you can use [`tor-auth-x25519-gen.py`](molecule/default/scripts/tor-auth-x25519-gen.py).
 * `cookie` (version 2 Onions only): Authentication cookie value with which you will authenticate. This key is required.
 * `comment` (version 2 Onions only): Human-readable comment describing the Onion service to which the authentication credentials belong. This key is optional.
 

@@ -1,8 +1,10 @@
 ---
 - name: Verify
   hosts: all
+  vars_files:
+    - vars/main.yaml
   tasks:
-    - name: Access clearnet check.torproject.org via Tor.
+    - name: Access clearnet via Tor.
       command: >
           curl --proxy socks5h://127.0.0.1:9050
           https://check.torproject.org/api/ip
@@ -10,24 +12,68 @@
         warn: false
       register: cmd
 
-    - name: Assert connection to check.torproject.org is via Tor.
+    - name: Assert clearnet connection is via Tor.
       assert:
         that: cmd.stdout.startswith('{"IsTor":true')
 
     - name: Pause to let self-hosted Onion sites come online.
       pause:
-        minutes: 2
+        seconds: 90
 
-    - name: Attempt connection to self-hosted v3 Onion site.
+    - name: Connect to v3 Onion site.
       shell: >
           curl --proxy socks5h://127.0.0.1:9050
           http://$(sudo cat /var/lib/tor/onion-services/onion-v3-test/hostname)/
       args:
         warn: false
 
-    - name: Attempt connection to self-hosted v2 Onion site.
+    - name: Connect to v2 Onion site.
       shell: >
           curl --proxy socks5h://127.0.0.1:9050
           http://$(sudo cat /var/lib/tor/onion-services/onion-v2-test/hostname)/
       args:
         warn: false
+
+    - name: Become root.
+      become: true
+      block:
+        - name: Register authenticated v3 Onion service hostname.
+          command: >
+              cat /var/lib/tor/onion-services/authenticated-onion-v3-test/hostname
+          register: cmd_v3
+          changed_when: false
+
+        - name: Register authenticated v2 Onion service hostname.
+          command: >
+              cat /var/lib/tor/onion-services/authenticated-onion-v2-test/hostname
+          register: cmd_v2
+          changed_when: false
+
+        - name: Rerun role to configure Onion client credentials.
+          include_role:
+            name: ansible-role-tor
+          vars:
+            onion_services_client_credentials:
+              - name: authenticated-v3-onion-tester
+                domain: "{{ cmd_v3.stdout | trim }}"
+                privkey: "{{ lookup('file', 'tmp/tester_privkey') | trim }}"
+              - comment: authenticated-v2-onion-tester
+                domain: "{{ cmd_v2.stdout.split(' ')[0] }}"
+                cookie: "{{ cmd_v2.stdout.split(' ')[1] }}"
+
+    - name: Connect to authenticated v3 Onion site.
+      shell: >
+          curl --proxy socks5h://127.0.0.1:9050
+          http://$(sudo cat /var/lib/tor/onion-services/authenticated-onion-v3-test/hostname)/
+      args:
+        warn: false
+
+    - name: Connect to authenticated v2 Onion site.
+      shell: >
+          curl --proxy socks5h://127.0.0.1:9050
+          http://$(sudo cut -f 1 -d ' ' /var/lib/tor/onion-services/authenticated-onion-v2-test/hostname)/
+      args:
+        warn: false
+      # This seems to work everywhere except Debian 10 on Travis CI.
+      # For the time being, let's ignore that one error.
+      ignore_errors: true

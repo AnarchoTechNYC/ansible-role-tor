@@ -1,22 +1,51 @@
 ---
 - name: Prepare
   hosts: all
-  become: true
   tasks:
-    - name: Update APT cache (Debian).
-      when: ansible_os_family == 'Debian'
-      apt:
-        update_cache: true
+    - name: Provision instance as root.
+      become: true
+      block:
+        - name: Update APT cache (Debian).
+          when: ansible_os_family == 'Debian'
+          become: true
+          apt:
+            update_cache: true
 
-    - name: Install tools for role verification.
-      package:
-        name: "{{ item }}"
-        state: present
+        - name: Install tools for role verification.
+          become: true
+          package:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - curl  # To test Tor client connections.
+            - nginx # To run a test HTTP Onion service.
+
+        - name: Start Web server.
+          service:
+            name: nginx
+            state: started
+
+    - name: Create local test temporary directory.
+      local_action:
+        module: file
+        path: "tmp/"
+        state: directory
+
+    - name: Generate tester v3 Onion credentials.
+      local_action:
+        module: command
+        cmd: "./scripts/tor-auth-x25519-gen.py"
+      register: cmd
+
+    - name: Save generated X25519 keys.
+      local_action:
+        module: copy
+        dest: "tmp/tester_{{ item.file }}"
+        content: "{{ item.content }}"
       loop:
-        - curl  # To test Tor client connections.
-        - nginx # To run a test HTTP Onion service.
-
-    - name: Start Web server.
-      service:
-        name: nginx
-        state: started
+        - file: privkey
+          content: "{{ cmd.stdout_lines[0].split(': ') | last }}"
+        - file: pubkey
+          content: "{{ cmd.stdout_lines[1].split(': ') | last }}"
+      loop_control:
+        label: "{{ item.file }}"

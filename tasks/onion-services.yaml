@@ -48,6 +48,8 @@
     - item.private_key_file is defined
   include_tasks: onion-service-secrets.yaml
   loop: "{{ onion_services }}"
+  loop_control:
+    label: "{{ item.name }}"
   vars:
     secret_file: hs_ed25519_secret_key
 
@@ -59,6 +61,8 @@
     - item.private_key_file is defined
   include_tasks: onion-service-secrets.yaml
   loop: "{{ onion_services }}"
+  loop_control:
+    label: "{{ item.name }}"
   vars:
     secret_file: private_key
 
@@ -70,6 +74,8 @@
     path: "{{ item.1 }}/{{ item.0.name }}"
     state: absent
   loop: "{{ onion_services | product(paths) | list }}"
+  loop_control:
+      label: "Onion: {{ item.0.name }}, Path: {{ item.1 }}"
   vars:
     paths:
       - /etc/tor/torrc.d/onions-enabled
@@ -88,4 +94,3 @@
   loop_control:
     label: "{{ item.name }}"
   notify: Reload Tor.
-

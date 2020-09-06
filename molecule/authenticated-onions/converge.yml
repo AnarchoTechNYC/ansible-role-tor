@@ -1,8 +1,0 @@
----
-- name: Converge
-  hosts: all
-  tasks:
-    - name: Import ansible-role-tor
-      become: true
-      import_role:
-        name: "ansible-role-tor"

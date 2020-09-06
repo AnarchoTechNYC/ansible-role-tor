@@ -19,6 +19,8 @@
     group: debian-tor
     mode: "600"
   loop: "{{ onion_services_client_credentials }}"
+  loop_control:
+    label: "{{ item.domain }}"
 
 - name: Supply v2 Onion service client credentials.
   when: onion_services_client_credentials is defined

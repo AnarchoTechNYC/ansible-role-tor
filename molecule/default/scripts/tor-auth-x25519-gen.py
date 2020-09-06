@@ -16,7 +16,10 @@ import sys, argparse, re
 try:
     import nacl.public
 except ImportError:
-    print('PyNaCl is required: "pip install pynacl" or similar')
+    print(
+        'PyNaCl is required: install with "pip install pynacl" and try again.',
+        file=sys.stderr
+    )
     exit(1)
 
 def key_str(key):
@@ -77,18 +80,29 @@ def main():
         help="Onion domain for which to create a keypair. Include the `.onion` part.",
         type=validate_onion
     )
+    parser.add_argument(
+        "-f", "--credential-file",
+        help="Path to  of the `.auth` and `.auth_private` files to write Tor Onion credential to."
+    )
     args = parser.parse_args()
 
+    # Generate keys.
     priv_key = nacl.public.PrivateKey.generate()
     pub_key  = priv_key.public_key
-    if args.onion_domain:
-        print('# Public key (`.auth` file) content follows. Give this to the Onion service operator.')
-        print(f'descriptor:x25519:{key_str(pub_key)}')
-        print('# Private key (`.auth_private` file) content follows. Use this to configure your own Tor client.')
-        print(f'{args.onion_domain}:descriptor:x25519:{key_str(priv_key)}')
+
+    if args.credential_file:
+        if not args.onion_domain:
+            print(
+                'Cannot write credential files with no Onion! Try again with `-d <some_onion_domain.onion>`.',
+                file=sys.stderr
+            )
+        with open('{}.auth_private'.format(args.credential_file), 'w') as fh:
+            fh.write('{}:descriptor:x25519:{}'.format(args.onion_domain, key_str(priv_key)))
+        with open('{}.auth'.format(args.credential_file), 'w') as fh:
+            fh.write('descriptor:x25519:{}'.format(key_str(pub_key)))
     else:
-        print(f'secret: {key_str(priv_key)}')
-        print(f'public: {key_str(pub_key)}')
+        print('secret: {}'.format(key_str(priv_key)))
+        print('public: {}'.format(key_str(pub_key)))
 
 if __name__ == '__main__':
     exit(main())

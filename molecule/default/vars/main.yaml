@@ -12,3 +12,18 @@ onion_services:
     version: 2
     virtports:
       - port_number: 80
+
+  - name: authenticated-onion-v3-test
+    virtports:
+      - port_number: 80
+    clients:
+      - name: tester
+        pubkey: "{{ lookup('file', 'tmp/tester_pubkey') | trim }}"
+
+  - name: authenticated-onion-v2-test
+    version: 2
+    virtports:
+      - port_number: 80
+    auth_type: stealth
+    clients:
+      - tester
