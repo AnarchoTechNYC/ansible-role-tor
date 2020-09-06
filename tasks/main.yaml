@@ -10,7 +10,7 @@
       loop: "{{ onion_services | product(onion_services_overrides) | list }}"
       loop_control:
         index_var: i
-        label: item.name
+        label: "{{ item.name }}"
     - name: Reset Onion service configuration from overrides list.
       set_fact:
         onion_services: "{{ overridden_onion_services }}"

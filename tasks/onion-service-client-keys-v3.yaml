@@ -11,7 +11,7 @@
     mode: "600"
   loop: "{{ onion_service.clients | list }}"
   loop_control:
-    label: item.name
+    label: "{{ item.name }}"
   notify: Reload Tor.
 
 - name: Remove v3 Onion service client's keys.
@@ -23,5 +23,5 @@
     state: absent
   loop: "{{ onion_service.clients | list }}"
   loop_control:
-    label: item.name
+    label: "{{ item.name }}"
   notify: Reload Tor.

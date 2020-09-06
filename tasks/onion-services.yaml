@@ -25,7 +25,7 @@
     #validate: "tor --verify-config -f %s"
   loop: "{{ onion_services }}"
   loop_control:
-    label: item.name
+    label: "{{ item.name }}"
 
 - name: Ensure Onion service directory exists.
   when:
@@ -39,7 +39,7 @@
     mode: "700"
   loop: "{{ onion_services }}"
   loop_control:
-    label: item.name
+    label: "{{ item.name }}"
 
 - name: Supply v3 Onion service private key.
   when:
@@ -86,6 +86,6 @@
     state: "{{ item.enabled | default('link') }}"
   loop: "{{ onion_services }}"
   loop_control:
-    label: item.name
+    label: "{{ item.name }}"
   notify: Reload Tor.
 

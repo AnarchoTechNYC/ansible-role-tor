@@ -6,10 +6,15 @@ dependency:
 #  yamllint .
 #  ansible-lint
 driver:
-  name: vagrant
+  name: docker
 platforms:
   - name: instance
-    box: debian/stretch64
+    image: ${docker_repo:-geerlingguy/docker-ubuntu1804-ansible:latest}
+    pre_build_image: true
+    volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    command: ${docker_command:-""}
 provisioner:
   name: ansible
 verifier:
