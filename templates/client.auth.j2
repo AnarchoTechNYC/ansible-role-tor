@@ -1,0 +1,4 @@
+{#-
+    This is a Tor server's v3 Onion client configuration template.
+-#}
+descriptor:{{ item.keyType | default('x25519') }}:{{ item.pubkey }}

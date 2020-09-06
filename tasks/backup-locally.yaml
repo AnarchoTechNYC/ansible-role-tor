@@ -1,0 +1,24 @@
+---
+- name: Backup v2 Onion service secrets to Ansible controller.
+  when: onion_service.version | default(3) == 2
+  include_tasks: backup-locally-v2.yaml
+  vars:
+    files:
+      - private_key
+      - client_keys
+  loop: "{{ onion_services }}"
+  loop_control:
+    loop_var: onion_service
+    label: "{{ onion_service.name }}"
+
+- name: Backup v3 Onion service secrets to Ansible controller.
+  when: onion_service.version | default(3) == 3
+  include_tasks: backup-locally-v3.yaml
+  vars:
+    files:
+      - hs_ed25519_secret_key
+      - hs_ed25519_public_key
+  loop: "{{ onion_services }}"
+  loop_control:
+    loop_var: onion_service
+    label: "{{ onion_service.name }}"

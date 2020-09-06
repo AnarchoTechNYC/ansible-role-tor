@@ -1,0 +1,22 @@
+---
+- name: Supply v2 Onion service client secret keys.
+  when:
+    - item.state | default('present') == "present"
+    - item.client_keys_file is defined
+    - item.auth_type is defined and item.auth_type
+  include_tasks: onion-service-keys-v2.yaml
+  loop: "{{ onion_services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    secret_file: client_keys
+
+- name: Supply v3 Onion service client public keys.
+  when:
+    - onion_service.clients is defined
+    - onion_service.auth_type is not defined # Effectively meaning "v3 only."
+  include_tasks: onion-service-client-keys-v3.yaml
+  loop: "{{ onion_services }}"
+  loop_control:
+    loop_var: onion_service
+    label: "{{ onion_service.name }}"

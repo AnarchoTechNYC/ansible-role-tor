@@ -8,6 +8,9 @@
     does not chomp newlines. See:
         https://stackoverflow.com/a/47418461
 -#}
+# {{ ansible_managed }}
 {% for onion in onion_services_client_credentials %}
+{% if onion.cookie is defined %}
 HidServAuth {{ onion.domain }} {{ onion.cookie }}{% if onion.comment is defined %} {{ onion.comment }}{% endif %}{{''}}
+{% endif %}
 {% endfor %}

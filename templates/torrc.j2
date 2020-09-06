@@ -91,9 +91,11 @@ HashedControlPassword {{ password }}
 {% endif %}
 {% if onion_services_client_credentials is defined %}
 ## When acting as a Tor client, credentials for authenticated Onion
-## services will be stored in this file.
+## services using Onion Rendezvous v2 will be stored in this file.
 %include /etc/tor/torrc.d/client-auth
 
+## Client credentials for v3 Onion services are in their own files.
+ClientOnionAuthDir {{ torrc.ClientOnionAuthDir | default('/var/lib/tor/onion_auth') }}
 {% endif %}
 {% if torrc.AvoidDiskWrites is defined %}
 AvoidDiskWrites {{ torrc.AvoidDiskWrites | int }}

@@ -20,16 +20,22 @@ Of this role's [default variables](defaults/main.yaml), which you can override u
 * `name`: Name of [the Onion service directory](https://www.torproject.org/docs/tor-manual.html#HiddenServiceDir).
 * `state`: Whether the Onion service's configuration should be `present`, in which case its configuration file will be written, or `absent` in which case the service's associated configuration file will be removed from the managed host.
 * `enabled`: Whether the Onion service should be active on the managed host. Valid values are either `link` (the default), in which case the Onion service will be enabled (i.e., symlinked to the `onions-enabled` directory), or `absent`, in which case the symlink will be removed.
-* `version`: [Rendezvous ("Onion") service descriptor version number](https://www.torproject.org/docs/tor-manual.html#HiddenServiceVersion).
+* `version`: [Rendezvous ("Onion") service descriptor version number](https://www.torproject.org/docs/tor-manual.html#HiddenServiceVersion). If omitted, this defaults to `3`.
 * `virtports`: List of [the Onion service's open virtual ports](https://www.torproject.org/docs/tor-manual.html#HiddenServicePort). An item in the `virtports` list is itself a dictionary with the following keys:
     * `port_number`: TCP port number to expose on the "public" Onion side. This is required; a virtual port must have a port number.
     * `unix_socket`: If the [Torified](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Terminology) service communicates via a UNIX domain socket, this specifies the path to its socket file.
     * `target_addr`: The IPv4 or IPv6 address of the Torified service, if the service listens for incoming connections on an internet socket. Defaults to `127.0.0.1` if neither this key nor `unix_socket` are defined.
     * `target_port`: TCP port number of the exposed service. Defaults to `port_number` unless `unix_socket` is defined.
-* `auth_type`: Type of [Onion service authentication](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to use with which to authorize incoming client connections. This can be either `stealth`, `basic`, or `false` (which is the default if left undefined).
-* `clients`: List of [client names](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to authorize. This key is ignored unless `auth_type` is set to a value other than `false`.
-* `private_key_file`: Path to a specific `private_key` file to use for this Onion service. You should almost certainly [ensure this file is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
-* `client_keys_file`: Path to a specific `client_keys` file to use for this Onion service. You should almost certainly [ensure this variable is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
+* `auth_type`: Type of [(v2) Onion service authentication](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to use with which to authorize incoming client connections. This can be either `stealth`, `basic`, or `false` (which is the default if left undefined). This should be omitted for v3 Onion services.
+* `clients`: Authorized clients for the Onion service.
+    * For a v3 Onion service, this is a dictionary with a structure as follows:
+        - `name` - The client's name. This becomes the basename for the client's `.auth` file.
+        - `pubkey` - The Base32-encoded X25519 public key for this client.
+        - `keyType`: Always set to `x25519`, as this is the only supported type of Onion key.
+        - `state`: Whether the client's `.auth` file will be `present` or `absent`. Defaults to `present`.
+    * For a v2 Onion service, this is the list of [client names](https://www.torproject.org/docs/tor-manual.html#HiddenServiceAuthorizeClient) to authorize. This key is ignored unless `auth_type` is set to a value other than `false`.
+* `private_key_file`: Path to a specific `hs_ed25519_secret_key` (for a v3 Onion) or a `private_key` (for a v2 Onion) file to use for this Onion service. You should almost certainly [ensure this file is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
+* `client_keys_file`: Path to a specific `client_keys` file to use for this Onion service. This is only supported for v2 Onion services. You should almost certainly [ensure this variable is encrypted with Ansible Vault](https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable).
 
 It may be helpful to see a few examples.
 
@@ -44,10 +50,34 @@ It may be helpful to see a few examples.
     ```
     HiddenServiceDir /var/lib/tor/onion-services/my-onion
     HiddenServicePort 22
-    HiddenServiceVersion 2
+    HiddenServiceVersion 3
     ```
     This is equivalent to `HiddenServicePort 22 127.0.0.1:22`.
-1. Authenticated stealth Onion service for a Dark Web site serving two Tor clients with the exposed HTTP server running on an alternate port on `localhost`:
+1. Authenticated stealth v3 Onion service for a Dark Web site serving two Tor clients with the exposed HTTP server running on an alternate port on `localhost`:
+    ```yaml
+    onion_services:
+      - name: dark-website
+        virtports:
+          - port_number: 80
+            target_port: 8080
+        clients:
+          - name: alice
+            pubkey: ALICE_X25519_PUBLIC_KEY_HERE
+          - name: bob
+            pubkey: BOB_X25519_PUBLIC_KEY_HERE
+    ```
+    The above will create an Onion service configuration in the file `/etc/tor/torrc.d/onions-enabled/dark-website` with the following contents:
+    ```
+    HiddenServiceDir /var/lib/tor/onion-services/dark-website
+    HiddenServicePort 80 127.0.0.1:8080
+    HiddenServiceVersion 3
+    ```
+    Meanwhile, `.auth` files will be written for each authorized client in `/var/lib/tor/onion-services/dark-website/authorized_clients/{alice,bob}.auth` containing values such as:
+    ```
+    descriptor:x25519:ALICE_X25519_PUBLIC_KEY_HERE
+    ```
+    With this configuration, `alice` and `bob` will be prompted to enter their corresponding private key when they visit the v3 Onion in Tor Browser. If not using Tor Browser, they must [write a `ClientOnionAuthDir` line in their local `torrc` files](https://github.com/AnarchoTechNYC/meta/wiki/Connecting-to-an-authenticated-Onion-service) pointing to a directory containing their corresponding `.auth_private` credential file, but will then be able to access the Onion service (by connecting to the Onion's virtual port 80) to access the service listening on the Onion's real port `8080`.
+1. Same as above, except a v2 Onion instead.
     ```yaml
     onion_services:
       - name: dark-website

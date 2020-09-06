@@ -1,0 +1,31 @@
+---
+- name: Ensure v3 Onion client auth directory exists.
+  file:
+    path: "{{ torrc.ClientOnionAuthDir | default('/var/lib/tor/onion_auth') }}"
+    state: directory
+    owner: debian-tor
+    group: debian-tor
+    mode: "700"
+
+- name: Supply v3 Onion service client credentials.
+  when:
+    - onion_services_client_credentials is defined
+    - item.name is defined
+    - item.privkey is defined
+  template:
+    src: client.auth_private.j2
+    dest: "{{ torrc.ClientOnionAuthDir | default('/var/lib/tor/onion_auth') }}/{{ item.name }}.auth_private"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+  loop: "{{ onion_services_client_credentials }}"
+
+- name: Supply v2 Onion service client credentials.
+  when: onion_services_client_credentials is defined
+  template:
+    src: HidServAuth.j2
+    dest: "/etc/tor/torrc.d/client-auth"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+    validate: "tor --verify-config -f %s"

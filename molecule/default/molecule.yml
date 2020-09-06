@@ -1,0 +1,16 @@
+---
+dependency:
+  name: galaxy
+#lint: |
+#  set -e
+#  yamllint .
+#  ansible-lint
+driver:
+  name: vagrant
+platforms:
+  - name: instance
+    box: debian/stretch64
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

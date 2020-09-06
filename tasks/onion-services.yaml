@@ -1,0 +1,91 @@
+---
+- name: Ensure torrc.d Onion service directories exist.
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: debian-tor
+    group: debian-tor
+    mode: "700"
+  loop:
+    - /etc/tor/torrc.d/onions-available
+    - /etc/tor/torrc.d/onions-enabled
+
+- name: Make Onion service configuration available.
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
+  template:
+    src: onion-service.j2
+    dest: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+    # TODO: Fix unprivileged-to-unprivileged user validation. See:
+    # http://docs.ansible.com/ansible/latest/become.html#becoming-an-unprivileged-user
+    #validate: "tor --verify-config -f %s"
+  loop: "{{ onion_services }}"
+  loop_control:
+    label: item.name
+
+- name: Ensure Onion service directory exists.
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
+  file:
+    path: "{{ tor_onion_services_dir }}/{{ item.name }}"
+    state: directory
+    owner: debian-tor
+    group: debian-tor
+    mode: "700"
+  loop: "{{ onion_services }}"
+  loop_control:
+    label: item.name
+
+- name: Supply v3 Onion service private key.
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
+    - item.private_key_file is defined
+  include_tasks: onion-service-secrets.yaml
+  loop: "{{ onion_services }}"
+  vars:
+    secret_file: hs_ed25519_secret_key
+
+- name: Supply v2 Onion service private key.
+  when:
+    - onion_services is defined
+    - item.state | default('present') == "present"
+    - item.version | default(3) == 2
+    - item.private_key_file is defined
+  include_tasks: onion-service-secrets.yaml
+  loop: "{{ onion_services }}"
+  vars:
+    secret_file: private_key
+
+- name: Remove Onion service configuration.
+  when:
+    - onion_services is defined
+    - item.0.state | default('present') == "absent"
+  file:
+    path: "{{ item.1 }}/{{ item.0.name }}"
+    state: absent
+  loop: "{{ onion_services | product(paths) | list }}"
+  vars:
+    paths:
+      - /etc/tor/torrc.d/onions-enabled
+      - /etc/tor/torrc.d/onions-available
+      - "{{ tor_onion_services_dir }}"
+
+- name: Enable Onion service.
+  when:
+    - onion_services is defined
+    - item.state | default('present') != "absent"
+  file:
+    src: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
+    path: "/etc/tor/torrc.d/onions-enabled/{{ item.name }}"
+    state: "{{ item.enabled | default('link') }}"
+  loop: "{{ onion_services }}"
+  loop_control:
+    label: item.name
+  notify: Reload Tor.
+

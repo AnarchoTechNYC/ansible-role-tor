@@ -1,0 +1,65 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    tor_onion_services_backup_dir: "/tmp/onion-services-backup-test"
+    onion_services:
+      - name: onion-v2-test
+        version: 2
+        virtports:
+          - port_number: 80
+
+      - name: authenticated-onion-v2-test
+        version: 2
+        virtports:
+          - port_number: 80
+        auth_type: stealth
+        clients:
+          - tester
+
+      - name: onion-v3-test
+        # Make v3 onions by default, so this can be commented out.
+        #version: 3
+        virtports:
+          - port_number: 80
+
+      - name: authenticated-onion-v3-test
+        virtports:
+          - port_number: 80
+        clients:
+          - name: tester
+            pubkey: "{{ tester_pubkey }}"
+
+  tasks:
+    - name: Generate tester v3 Onion credentials.
+      local_action:
+        module: command
+        cmd: "./scripts/tor-auth-x25519-gen.py"
+      register: cmd
+      changed_when: false
+
+    - name: Set facts for tester v3 Onion credentials.
+      set_fact:
+        tester_privkey: "{{ cmd.stdout_lines[0].split(': ') | last }}"
+        tester_pubkey: "{{ cmd.stdout_lines[1].split(': ') | last }}"
+
+    - name: Import ansible-role-tor
+      become: true
+      import_role:
+        name: "ansible-role-tor"
+
+    - name: Discover authenticated v3 Onion service hostname.
+      become: true
+      command: >
+          cat /var/lib/tor/onion-services/authenticated-onion-v3-test/hostname
+      register: cmd
+
+    - name: Reconfigure Tor with new v3 Onion client authorization.
+      become: true
+      import_role:
+        name: "ansible-role-tor"
+      vars:
+        onion_services_client_credentials:
+          - name: authenticated-onion-v3-tester
+            domain: "{{ cmd.stdout }}"
+            privkey: "{{ tester_privkey }}"

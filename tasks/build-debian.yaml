@@ -25,8 +25,8 @@
     mode: "0644"
     validate_certs: true
   loop:
-    - "deb https://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
-    - "deb-src https://deb.torproject.org/torproject.org {{ ansible_distribution_release | default('stretch') }} main"
+    - "deb https://deb.torproject.org/torproject.org {{ ansible_facts.distribution_release | default('stretch') }} main"
+    - "deb-src https://deb.torproject.org/torproject.org {{ ansible_facts.distribution_release | default('stretch') }} main"
 
 - name: Check Tor version.
   become: false

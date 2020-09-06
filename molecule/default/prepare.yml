@@ -1,0 +1,27 @@
+---
+- name: Prepare
+  hosts: all
+  tasks:
+
+    - name: Provision instance as root.
+      become: true
+      block:
+        - name: Update APT cache (Debian).
+          when: ansible_os_family == 'Debian'
+          become: true
+          apt:
+            update_cache: true
+
+        - name: Install tools for role verification.
+          become: true
+          package:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - curl  # To test Tor client connections.
+            - nginx # To run a test HTTP Onion service.
+
+        - name: Start Web server.
+          service:
+            name: nginx
+            state: started

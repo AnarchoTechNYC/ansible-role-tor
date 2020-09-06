@@ -32,7 +32,7 @@ torrc:
   # group. Effectively, the user under which Tor will run.
   #User: toruser
 
-  # If 1 (true), Tor forks and daemonizes to the background. This 
+  # If 1 (true), Tor forks and daemonizes to the background. This
   # has no effect on Windows; instead you should use the --service
   # command-line option. (Default: 0)
   #RunAsDaemon: false
@@ -94,6 +94,9 @@ torrc:
 
   # See https://www.torproject.org/docs/tor-manual.html#ControlPortWriteToFile
   #ControlPortWriteToFile: "/path/to/file"
+
+  # See https://www.torproject.org/docs/tor-manual.html#ClientOnionAuthDir
+  #ClientOnionAuthDir: "{{ torrc.DataDirectory }}/onion_auth"
 
 # Directory in which new versions of Tor source code will be compiled.
 tor_package_build_dir: "/tmp/tor-package-source"
@@ -172,7 +175,18 @@ tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/oni
 #     https://github.com/AnarchoTechNYC/meta/wiki/Connecting-to-an-authenticated-Onion-service
 #
 # When left undefined (commented), no credentials are written to host.
+#
+# This list holds both v3 and v2 Onion credentials.
 #onion_services_client_credentials:
+#
+#  # Newer v3 Onions have 56 character long domain names and use a
+#  # specially encoded private key.
+#  - name: someone
+#    domain: rh5d6reakhpvuxe2t3next6um6iiq4jf43m7gmdrphfhopfpnoglzcyd.onion
+#    keyType: x25519 # This is the only permitted value.
+#    privkey: ZDUVQQ7IKBXSGR2WWOBNM3VP5ELNOYSSINDK7CAUN2WD7A3EKZWQ
+#
+#  # Older v2 Onions use a "cookie" value.
 #  - domain: example.onion
 #    cookie: an_auth_value
 #    comment: Example Onion credential.
@@ -182,15 +196,21 @@ tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/oni
 
 #  # This Onion service is used primarily for NAT punching.
 #  - name: onion-ssh # The name of the Onion service directory.
-#    version: 2      # The Onion service protocol version.
+#    version: 3      # The Onion service protocol version.
 #    virtports:      # The virtual port(s) to expose on the Onion.
 #      - port_number: 22        # Port to open on public Onion side.
 #        target_addr: 127.0.0.1 # The target address of the service.
 #        target_port: 22        # The target port of the service.
-#    auth_type: stealth     # The Onion's authentication type. This
-#                           # can be `stealth`, `basic`, or `false`.
 #    clients:        # A list of clients to authenticate.
-#      - admin
+#      - admin       # Client values for Version 2 Onions are simply
+#                    # a string representing a client identity.
+#      # Version 3 Onion service clients are a dictionary with the
+#      # following structure indicating their name and key details.
+#      - name: someone
+#        pubkey: N2NU7BSRL6YODZCYPN4CREB54TYLKGIE2KYOQWLFYC23ZJVCE5DQ
+#        keyType: x25519 # This is the only valid keyType for now.
+#        state: present  # Or `absent`.
+#
 #    Publish: true   # See `PublishHidServDescriptors`
 #    DirGroupReadable: false
 #    NumIntroductionPoints: 3
@@ -200,3 +220,10 @@ tor_onion_services_dir: "{{ torrc.DataDirectory | default('/var/lib/tor') }}/oni
 #    RendPostPeriod:
 #      n: 1
 #      unit: hour
+#
+#    # The following values are only supported for Version 2 Onions:
+#    auth_type: stealth     # The Onion's authentication type. This
+#                           # can be `stealth`, `basic`, or `false`.
+#                           # This is ignored for version 3 Onions as
+#                           # all v3 Onions are always `stealth`.
+#    client_keys_file: /path/to/file/containing/client/secret/keys

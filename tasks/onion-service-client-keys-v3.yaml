@@ -1,0 +1,27 @@
+---
+- name: Write v3 Onion service client's keys.
+  when:
+    - onion_service.clients is defined
+    - item.state | default('present') == "present"
+  template:
+    src: client.auth.j2
+    dest: "{{ tor_onion_services_dir }}/{{ onion_service.name }}/authorized_clients/{{ item.name }}.auth"
+    owner: debian-tor
+    group: debian-tor
+    mode: "600"
+  loop: "{{ onion_service.clients | list }}"
+  loop_control:
+    label: item.name
+  notify: Reload Tor.
+
+- name: Remove v3 Onion service client's keys.
+  when:
+    - onion_service.clients is defined
+    - item.state | default('present') == "absent"
+  file:
+    path: "{{ tor_onion_services_dir }}/{{ onion_service.name }}/authorized_clients/{{ item.name }}.auth"
+    state: absent
+  loop: "{{ onion_service.clients | list }}"
+  loop_control:
+    label: item.name
+  notify: Reload Tor.

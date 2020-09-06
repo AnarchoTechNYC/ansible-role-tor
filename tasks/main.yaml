@@ -10,6 +10,7 @@
       loop: "{{ onion_services | product(onion_services_overrides) | list }}"
       loop_control:
         index_var: i
+        label: item.name
     - name: Reset Onion service configuration from overrides list.
       set_fact:
         onion_services: "{{ overridden_onion_services }}"
@@ -20,7 +21,7 @@
   import_tasks: apparmor.yaml
 
 - name: Build Tor.
-  include_tasks: "build-{{ ansible_os_family | default('Debian') | lower }}.yaml"
+  include_tasks: "build-{{ ansible_facts.os_family | default('Debian') | lower }}.yaml"
   tags:
     - tor-build
 
@@ -28,26 +29,11 @@
   when: tor_onion_services_vanguards is defined
   import_tasks: harden-vanguards.yaml
 
-- name: Ensure torrc.d Onion service directories exist.
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: debian-tor
-    group: debian-tor
-    mode: "700"
-  loop:
-    - /etc/tor/torrc.d/onions-available
-    - /etc/tor/torrc.d/onions-enabled
+- name: Set up Onion services.
+  import_tasks: onion-services.yaml
 
-- name: Supply Onion service client credentials.
-  when: onion_services_client_credentials is defined
-  template:
-    src: HidServAuth.j2
-    dest: "/etc/tor/torrc.d/client-auth"
-    owner: debian-tor
-    group: debian-tor
-    mode: "600"
-    validate: "tor --verify-config -f %s"
+- name: Set up Onion services client.
+  import_tasks: onion-services-client.yaml
 
 - name: Write main Tor configuration file.
   template:
@@ -59,79 +45,6 @@
     # TODO: Failed validation...why?
     #validate: "tor --verify-config -f %s"
 
-- name: Make Onion service configuration available.
-  when:
-    - onion_services is defined
-    - item.state | default('present') == "present"
-  template:
-    src: onion-service.j2
-    dest: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
-    owner: debian-tor
-    group: debian-tor
-    mode: "600"
-    # TODO: Fix unprivileged-to-unprivileged user validation. See:
-    # http://docs.ansible.com/ansible/latest/become.html#becoming-an-unprivileged-user
-    #validate: "tor --verify-config -f %s"
-  loop: "{{ onion_services }}"
-
-- name: Ensure Onion service directory exists.
-  when:
-    - onion_services is defined
-    - item.state | default('present') == "present"
-  file:
-    path: "{{ tor_onion_services_dir }}/{{ item.name }}"
-    state: directory
-    owner: debian-tor
-    group: debian-tor
-    mode: "700"
-  loop: "{{ onion_services }}"
-
-- name: Supply Onion service private key.
-  when:
-    - onion_services is defined
-    - item.state | default('present') == "present"
-    - item.private_key_file is defined
-  include_tasks: supply-onion-secrets.yaml
-  loop: "{{ onion_services }}"
-  vars:
-    secret_file: private_key
-
-- name: Supply Onion service client keys.
-  when:
-    - onion_services is defined
-    - item.state | default('present') == "present"
-    - item.client_keys_file is defined
-    - item.auth_type is defined and item.auth_type
-  include_tasks: supply-onion-secrets.yaml
-  loop: "{{ onion_services }}"
-  vars:
-    secret_file: client_keys
-
-- name: Remove Onion service configuration.
-  when:
-    - onion_services is defined
-    - item.0.state | default('present') == "absent"
-  file:
-    path: "{{ item.1 }}/{{ item.0.name }}"
-    state: absent
-  loop: "{{ onion_services | product(paths) | list }}"
-  vars:
-    paths:
-      - /etc/tor/torrc.d/onions-enabled
-      - /etc/tor/torrc.d/onions-available
-      - "{{ tor_onion_services_dir }}"
-
-- name: Enable Onion service.
-  when:
-    - onion_services is defined
-    - item.state | default('present') != "absent"
-  file:
-    src: "/etc/tor/torrc.d/onions-available/{{ item.name }}"
-    path: "/etc/tor/torrc.d/onions-enabled/{{ item.name }}"
-    state: "{{ item.enabled | default('link') }}"
-  loop: "{{ onion_services }}"
-  notify: Reload Tor.
-
 - name: Reload Tor to ensure current torrc is used.
   service:
     name: tor
@@ -139,12 +52,16 @@
     enabled: true
   changed_when: false
 
+- name: Supply Onion service client keys.
+  when: onion_services is defined
+  import_tasks: onion-service-client-keys.yaml
+
 - name: Perform Vanguards setup.
   when: tor_onion_services_vanguards is defined
   import_tasks: main-vanguards.yaml
 
 - name: Backup Onion service secrets.
   when: tor_onion_services_backup_dir is defined
-  import_tasks: backup-local.yaml
+  import_tasks: backup-locally.yaml
   tags:
     - tor-backup

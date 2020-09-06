@@ -12,7 +12,7 @@ HiddenServiceDir {{ tor_onion_services_dir }}/{{ item.name }}
 {% for virtport in item.virtports %}
 HiddenServicePort {{ virtport.port_number }}{% if virtport.target_addr is defined or virtport.target_port is defined %} {{ virtport.target_addr | default('127.0.0.1') }}{% if virtport.target_port is defined %}:{{ virtport.target_port | default(virtport.port_number) }}{% endif %}{% elif virtport.unix_socket is defined %} unix:{{ virtport.unix_socket }}{% endif %}{{''}}
 {% endfor %}
-HiddenServiceVersion {{ item.version | default(2) }}
+HiddenServiceVersion {{ item.version | default(3) }}
 {% if item.auth_type is defined and item.auth_type %}
 HiddenServiceAuthorizeClient {{ item.auth_type }} {{ item.clients | join(',') }}
 {% endif %}

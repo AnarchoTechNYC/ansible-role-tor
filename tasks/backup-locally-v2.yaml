@@ -1,0 +1,36 @@
+---
+- name: Fetch backup copy of v2 Onion service keys.
+  when:
+    - onion_service.state | default('present') == "present"
+    - onion_service.enabled | default('link') != "absent"
+    - ( (onion_service.auth_type is defined and onion_service.auth_type) or item == "private_key" )
+  fetch:
+    dest: "{{ tor_onion_services_backup_dir }}"
+    src: "{{ tor_onion_services_dir }}/{{ onion_service.name }}/{{ item }}"
+  loop: "{{ files }}"
+
+- name: Protect fetched v2 Onion service keys.
+  when:
+    - onion_service.state | default('present') == "present"
+    - onion_service.enabled | default('link') != "absent"
+    - ( (onion_service.auth_type is defined and onion_service.auth_type) or item == "private_key" )
+  become: false
+  local_action:
+    module: file
+    path: "{{ tor_onion_services_backup_dir }}/{{ inventory_hostname }}/{{ tor_onion_services_dir }}/{{ onion_service.name }}/{{ item }}"
+    mode: "600"
+    owner: "{{ lookup('env', 'USER') }}"
+  loop: "{{ files }}"
+
+- name: Encrypt fetched v2 Onion service secrets.
+  when:
+    - tor_onion_services_backup_password is defined
+    - ( (onion_service.auth_type is defined and onion_service.auth_type) or item == "private_key" )
+  no_log: true
+  become: false
+  local_action:
+    module: expect
+    command: "ansible-vault encrypt --vault-id {{ tor_onion_services_backup_vault_id | default('') | quote }}@prompt {{ tor_onion_services_backup_dir | quote }}/{{ inventory_hostname | quote }}/{{ tor_onion_services_dir | quote }}/{{ onion_service.name | quote }}/{{ item | quote }}"
+    responses:
+      password: "{{ tor_onion_services_backup_password }}"
+  loop: "{{ files }}"
