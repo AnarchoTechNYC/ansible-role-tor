@@ -32,7 +32,7 @@ before_install:
     - pip3 install --user setuptools wheel
 
 install:
-    - pip3 install --user molecule ansible-lint docker
+    - pip3 install --user molecule[docker] ansible-lint
 
 script:
     - molecule test
