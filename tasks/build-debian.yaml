@@ -37,7 +37,7 @@
 
     - name: Get repository Tor version.
       register: repo_tor_version
-      shell: "apt show tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
+      shell: "apt-cache showsrc tor 2>/dev/null | grep ^Version: | cut -d ' ' -f 2"
       changed_when: false
 
 - name: Build and install updated Tor from source.
