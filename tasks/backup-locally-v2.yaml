@@ -25,6 +25,7 @@
 - name: Encrypt fetched v2 Onion service secrets.
   when:
     - tor_onion_services_backup_password is defined
+    - onion_service.state | default('present') == "present"
     - ( (onion_service.auth_type is defined and onion_service.auth_type) or item == "private_key" )
   no_log: true
   become: false
