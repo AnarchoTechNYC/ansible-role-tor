@@ -29,5 +29,5 @@
     command: "ansible-vault encrypt --vault-id {{ tor_onion_services_backup_vault_id | default('') | quote }}@prompt {{ tor_onion_services_backup_dir | quote }}/{{ inventory_hostname | quote }}/{{ tor_onion_services_dir | quote }}/{{ onion_service.name | quote }}/{{ item | quote }}"
     responses:
       password: "{{ tor_onion_services_backup_password }}"
-    changed_when: false
   loop: "{{ files }}"
+  changed_when: false
