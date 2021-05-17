@@ -4,7 +4,7 @@
     - item.state | default('present') == "present"
     - item.client_keys_file is defined
     - item.auth_type is defined and item.auth_type
-  include_tasks: onion-service-keys-v2.yaml
+  include_tasks: onion-service-secrets.yaml
   loop: "{{ onion_services }}"
   loop_control:
     label: "{{ item.name }}"
