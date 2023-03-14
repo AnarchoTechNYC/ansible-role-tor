@@ -18,6 +18,7 @@
     files:
       - hs_ed25519_secret_key
       - hs_ed25519_public_key
+      - hostname
   loop: "{{ onion_services }}"
   loop_control:
     loop_var: onion_service
