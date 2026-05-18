@@ -82,7 +82,7 @@ def main():
     )
     parser.add_argument(
         "-f", "--credential-file",
-        help="Path to  of the `.auth` and `.auth_private` files to write Tor Onion credential to."
+        help="Where to write the `.auth` and `.auth_private` Tor Onion credential files."
     )
     args = parser.parse_args()
 
